@@ -128,7 +128,6 @@ window.resetBoss = (id) => {
     save();
 };
 
-// FUNÇÃO DE RESET TOTAL
 window.resetAllTimers = async () => {
     if (!confirm("⚠️ ATENÇÃO: Deseja resetar TODOS os timers agora?")) return;
     
@@ -143,7 +142,6 @@ window.resetAllTimers = async () => {
     
     await save();
     render();
-    alert("Todos os bosses foram resetados para 'DISPONÍVEL'.");
 };
 
 function updateBossTimers() {
@@ -177,6 +175,7 @@ function updateBossTimers() {
     });
 }
 
+// AJUSTE: Renderização agora cria uma sub-grid para os bosses dentro de cada piso
 function render() {
     const container = document.getElementById('boss-list-container');
     container.innerHTML = '';
@@ -189,9 +188,10 @@ function render() {
         for (const f in BOSS_DATA[type].floors) {
             const floorDiv = document.createElement('div');
             floorDiv.className = 'floor-section';
-            floorDiv.innerHTML = `<h3>${f}</h3>`;
+            
+            let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
-                floorDiv.innerHTML += `
+                floorHtml += `
                     <div class="boss-card" id="card-${boss.id}">
                         <h4>${boss.name}</h4>
                         <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
@@ -203,6 +203,8 @@ function render() {
                         <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
                     </div>`;
             });
+            floorHtml += `</div>`;
+            floorDiv.innerHTML = floorHtml;
             grid.appendChild(floorDiv);
         }
         section.appendChild(grid);
