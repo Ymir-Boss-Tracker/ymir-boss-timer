@@ -52,7 +52,7 @@ function initializeBossData() {
             BOSS_NAMES.forEach(bossName => {
                 BOSS_DATA[type].floors[floorKey].bosses.push({
                     id: `${type.toLowerCase()}_${p}_${bossName.toLowerCase()}`,
-                    name: bossName, respawnTime: 0, alerted: false
+                    name: bossName, respawnTime: 0, alerted: false, floor: floorKey, type: type
                 });
             });
         }
@@ -130,7 +130,6 @@ window.resetBoss = (id) => {
 
 window.resetAllTimers = async () => {
     if (!confirm("⚠️ ATENÇÃO: Deseja resetar TODOS os timers agora?")) return;
-    
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
@@ -139,7 +138,6 @@ window.resetAllTimers = async () => {
             });
         }
     });
-    
     await save();
     render();
 };
@@ -175,7 +173,6 @@ function updateBossTimers() {
     });
 }
 
-// AJUSTE: Renderização agora cria uma sub-grid para os bosses dentro de cada piso
 function render() {
     const container = document.getElementById('boss-list-container');
     container.innerHTML = '';
@@ -188,7 +185,6 @@ function render() {
         for (const f in BOSS_DATA[type].floors) {
             const floorDiv = document.createElement('div');
             floorDiv.className = 'floor-section';
-            
             let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
                 floorHtml += `
@@ -212,45 +208,63 @@ function render() {
     });
 }
 
+// NOVA FUNÇÃO DE EXPORTAÇÃO COM ORDEM CRESCENTE
 function exportReport() {
     const agora = new Date();
     const dataStr = agora.toLocaleDateString('pt-BR');
     const horaStr = agora.toLocaleTimeString('pt-BR');
 
-    let text = `=== RELATÓRIO COMPLETO DE BOSSES - YMIR ===\n`;
-    text += `Gerado em: ${dataStr}, ${horaStr}\n`;
-    text += `===========================================\n\n`;
+    let allBosses = [];
 
+    // 1. Coletar todos os bosses em uma lista plana
     ['Comum', 'Universal'].forEach(type => {
-        const tempoRespawn = type === 'Universal' ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
-        text += `>>> FOLKVANGR ${type.toUpperCase()} <<<\n\n`;
-
         for (const floorKey in BOSS_DATA[type].floors) {
-            text += `[${floorKey}]\n`;
-            
             BOSS_DATA[type].floors[floorKey].bosses.forEach(boss => {
-                const nomeBoss = boss.name.padEnd(10, ' ');
-                
-                if (boss.respawnTime > 0) {
-                    const horaNasce = new Date(boss.respawnTime);
-                    const horaMorto = new Date(boss.respawnTime - tempoRespawn);
-                    
-                    const nasceTxt = horaNasce.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    const mortoTxt = horaMorto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    
-                    text += `${nomeBoss} | Morto: ${mortoTxt} | Nasce: ${nasceTxt}\n`;
-                } else {
-                    text += `${nomeBoss} | STATUS: Sem informação\n`;
-                }
+                allBosses.push({...boss});
             });
-            text += `-------------------------------------------\n\n`;
         }
+    });
+
+    // 2. Separar bosses com timer e sem timer
+    let activeBosses = allBosses.filter(b => b.respawnTime > 0);
+    let inactiveBosses = allBosses.filter(b => b.respawnTime === 0);
+
+    // 3. Ordenar os bosses ativos pelo tempo de respawn (crescente)
+    activeBosses.sort((a, b) => a.respawnTime - b.respawnTime);
+
+    let text = `=== RELATÓRIO CRONOLÓGICO DE BOSSES - YMIR ===\n`;
+    text += `Gerado em: ${dataStr}, ${horaStr}\n`;
+    text += `==============================================\n\n`;
+
+    text += `>>> PRÓXIMOS RESPANS (ORDEM CRONOLÓGICA) <<<\n\n`;
+
+    if (activeBosses.length === 0) {
+        text += `Nenhum boss com timer ativo no momento.\n`;
+    } else {
+        activeBosses.forEach(boss => {
+            const tempoRespawn = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+            const horaNasce = new Date(boss.respawnTime);
+            const horaMorto = new Date(boss.respawnTime - tempoRespawn);
+            
+            const nasceTxt = horaNasce.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const mortoTxt = horaMorto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            const label = `[${boss.type}] ${boss.floor} - ${boss.name}`;
+            text += `${label.padEnd(30, ' ')} | Morto: ${mortoTxt} | NASCE: ${nasceTxt}\n`;
+        });
+    }
+
+    text += `\n==============================================\n`;
+    text += `>>> BOSSES SEM INFORMAÇÃO / DISPONÍVEIS <<<\n\n`;
+
+    inactiveBosses.forEach(boss => {
+        text += `[${boss.type}] ${boss.floor} - ${boss.name}\n`;
     });
 
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Relatorio_Bosses_Ymir.txt`;
+    link.download = `Relatorio_Cronologico_Ymir.txt`;
     link.click();
 }
 
