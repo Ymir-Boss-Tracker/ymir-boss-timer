@@ -51,7 +51,10 @@ function initializeBossData() {
             BOSS_NAMES.forEach(bossName => {
                 BOSS_DATA[type].floors[floorKey].bosses.push({
                     id: `${type.toLowerCase()}_${p}_${bossName.toLowerCase()}`,
-                    name: bossName, respawnTime: 0, alerted: false
+                    name: bossName, 
+                    respawnTime: 0, 
+                    alerted: false,
+                    lastKilled: "" // NOVO: Armazena o horário da morte
                 });
             });
         }
@@ -65,7 +68,11 @@ async function loadUserData() {
         const saved = docSnap.data().timers;
         saved.forEach(s => {
             const b = findBossById(s.id);
-            if (b) { b.respawnTime = s.time; b.alerted = s.alerted; }
+            if (b) { 
+                b.respawnTime = s.time; 
+                b.alerted = s.alerted;
+                b.lastKilled = s.lastKilled || ""; // Carrega do banco
+            }
         });
     }
     render();
@@ -77,7 +84,12 @@ async function save() {
     ['Comum', 'Universal'].forEach(t => {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(b => {
-                list.push({id: b.id, time: b.respawnTime, alerted: b.alerted});
+                list.push({
+                    id: b.id, 
+                    time: b.respawnTime, 
+                    alerted: b.alerted,
+                    lastKilled: b.lastKilled // Salva no banco
+                });
             });
         }
     });
@@ -95,9 +107,12 @@ function findBossById(id) {
 
 window.killBoss = (id) => {
     const b = findBossById(id);
-    b.respawnTime = Date.now() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
+    const agora = new Date();
+    b.respawnTime = agora.getTime() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
     b.alerted = false;
+    b.lastKilled = agora.toLocaleTimeString('pt-BR'); // Registra hora atual
     save();
+    render(); // Re-renderiza para mostrar o texto na hora
 };
 
 window.setManualTime = (id) => {
@@ -112,26 +127,27 @@ window.setManualTime = (id) => {
     
     const d = new Date(); 
     d.setHours(h, m, s, 0); 
-    
     if (d > new Date()) d.setDate(d.getDate() - 1);
     
     const b = findBossById(id);
     b.respawnTime = d.getTime() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
     b.alerted = false;
+    b.lastKilled = d.toLocaleTimeString('pt-BR'); // Registra hora digitada
     save();
-    input.value = ""; // Limpa o campo após confirmar
+    input.value = ""; 
+    render(); // Re-renderiza para mostrar o texto na hora
 };
 
 window.resetBoss = (id) => {
     const b = findBossById(id);
     b.respawnTime = 0; 
     b.alerted = false;
+    b.lastKilled = ""; // Limpa o registro ao resetar
     
-    // LIMPA O CAMPO DE TEXTO AO RESETAR
     const input = document.getElementById(`manual-input-${id}`);
     if (input) input.value = ""; 
-
     save();
+    render(); // Re-renderiza
 };
 
 function updateBossTimers() {
@@ -179,9 +195,13 @@ function render() {
             floorDiv.className = 'floor-section';
             floorDiv.innerHTML = `<h3>${f}</h3>`;
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
+                // NOVO: Verifica se existe horário de morte para exibir
+                const statusMorte = boss.lastKilled ? `<div class="last-killed">Morreu: ${boss.lastKilled}</div>` : '';
+                
                 floorDiv.innerHTML += `
                     <div class="boss-card" id="card-${boss.id}">
                         <h4>${boss.name}</h4>
+                        ${statusMorte}
                         <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
                         <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
                         <div class="manual-box">
