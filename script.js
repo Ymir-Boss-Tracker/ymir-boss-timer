@@ -183,20 +183,44 @@ function render() {
 }
 
 function exportReport() {
-    let text = "=== RELATÓRIO DE BOSSES ===\n";
+    const agora = new Date();
+    const dataStr = agora.toLocaleDateString('pt-BR');
+    const horaStr = agora.toLocaleTimeString('pt-BR');
+
+    let text = `=== RELATÓRIO COMPLETO DE BOSSES - YMIR ===\n`;
+    text += `Gerado em: ${dataStr}, ${horaStr}\n`;
+    text += `===========================================\n\n`;
+
     ['Comum', 'Universal'].forEach(type => {
-        text += `\n>>> ${type.toUpperCase()}\n`;
+        const tempoRespawn = type === 'Universal' ? 2 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+        text += `>>> FOLKVANGR ${type.toUpperCase()} <<<\n\n`;
+
         for (const floorKey in BOSS_DATA[type].floors) {
+            text += `[${floorKey}]\n`;
+            
             BOSS_DATA[type].floors[floorKey].bosses.forEach(boss => {
-                const status = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString() : "DISPONÍVEL";
-                text += `${boss.name} (${floorKey}): ${status}\n`;
+                const nomeBoss = boss.name.padEnd(10, ' ');
+                
+                if (boss.respawnTime > 0) {
+                    const horaNasce = new Date(boss.respawnTime);
+                    const horaMorto = new Date(boss.respawnTime - tempoRespawn);
+                    
+                    const nasceTxt = horaNasce.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const mortoTxt = horaMorto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    text += `${nomeBoss} | Morto: ${mortoTxt} | Nasce: ${nasceTxt}\n`;
+                } else {
+                    text += `${nomeBoss} | STATUS: Sem informação\n`;
+                }
             });
+            text += `-------------------------------------------\n\n`;
         }
     });
+
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Bosses.txt`;
+    link.download = `Relatorio_Bosses_Ymir.txt`;
     link.click();
 }
 
