@@ -102,12 +102,22 @@ window.killBoss = (id) => {
 
 window.setManualTime = (id) => {
     const val = document.getElementById(`manual-input-${id}`).value;
-    if (!val) return;
-    const [h, m] = val.split(':').map(Number);
-    const d = new Date(); d.setHours(h, m, 0, 0);
+    if (!val) return alert("Selecione um horário completo (HH:MM:SS)!");
+    
+    // Suporte a HH:MM:SS
+    const parts = val.split(':').map(Number);
+    const h = parts[0];
+    const m = parts[1];
+    const s = parts[2] || 0; 
+    
+    const d = new Date(); 
+    d.setHours(h, m, s, 0); 
+    
     if (d > new Date()) d.setDate(d.getDate() - 1);
+    
     const b = findBossById(id);
-    b.respawnTime = d.getTime() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
+    const duration = id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    b.respawnTime = d.getTime() + duration;
     b.alerted = false;
     save();
 };
@@ -169,7 +179,7 @@ function render() {
                         <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
                         <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
                         <div class="manual-box">
-                            <input type="time" id="manual-input-${boss.id}">
+                            <input type="time" id="manual-input-${boss.id}" step="1">
                             <button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button>
                         </div>
                         <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
@@ -205,8 +215,9 @@ function exportReport() {
                     const horaNasce = new Date(boss.respawnTime);
                     const horaMorto = new Date(boss.respawnTime - tempoRespawn);
                     
-                    const nasceTxt = horaNasce.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    const mortoTxt = horaMorto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    // Formato HH:MM:SS no relatório
+                    const nasceTxt = horaNasce.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const mortoTxt = horaMorto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     
                     text += `${nomeBoss} | Morto: ${mortoTxt} | Nasce: ${nasceTxt}\n`;
                 } else {
@@ -223,5 +234,4 @@ function exportReport() {
     link.download = `Relatorio_Bosses_Ymir.txt`;
     link.click();
 }
-
 setInterval(() => { if(currentUser) updateBossTimers(); }, 1000);
