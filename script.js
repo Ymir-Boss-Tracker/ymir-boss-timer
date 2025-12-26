@@ -33,7 +33,7 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// FUNÇÃO DE ENVIO CORRIGIDA PARA EVITAR ERRO 400
+// FUNÇÃO DE ENVIO CORRIGIDA
 async function sendFullReportToDiscord() {
     if (!DISCORD_WEBHOOK_URL) return;
     const btn = document.getElementById('sync-discord-btn');
