@@ -113,6 +113,33 @@ function findBossById(id) {
     }
 }
 
+function updateNextBossHighlight() {
+    let allActive = [];
+    ['Comum', 'Universal'].forEach(type => {
+        for (const f in BOSS_DATA[type].floors) {
+            BOSS_DATA[type].floors[f].bosses.forEach(b => {
+                if (b.respawnTime > Date.now()) allActive.push({ ...b, typeLabel: type });
+            });
+        }
+    });
+
+    const highlightDiv = document.getElementById('next-boss-display');
+    if (allActive.length > 0) {
+        allActive.sort((a, b) => a.respawnTime - b.respawnTime);
+        const next = allActive[0];
+        const diff = next.respawnTime - Date.now();
+        const h = Math.floor(diff / 3600000).toString().padStart(2,'0');
+        const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0');
+        const s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
+        highlightDiv.innerHTML = `<div class="next-boss-info">
+            <span>🎯 PRÓXIMO: <strong>${next.name}</strong> (${next.typeLabel} - ${next.floor})</span>
+            <span class="next-boss-timer">${h}:${m}:${s}</span>
+        </div>`;
+    } else {
+        highlightDiv.innerHTML = "<span>⚔️ Nenhum boss em contagem no momento.</span>";
+    }
+}
+
 window.undoKill = (id) => {
     const b = findBossById(id);
     if (b.lastRespawnTime !== null) {
@@ -120,9 +147,7 @@ window.undoKill = (id) => {
         b.lastRespawnTime = null;
         b.alerted = false;
         save(); render();
-    } else {
-        alert("Nada para desfazer!");
-    }
+    } else { alert("Nada para desfazer!"); }
 };
 
 window.killBoss = (id) => {
@@ -166,6 +191,7 @@ window.resetAllTimers = async () => {
 
 function updateBossTimers() {
     const now = Date.now();
+    updateNextBossHighlight();
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
@@ -196,10 +222,10 @@ function updateBossTimers() {
                         timerTxt.style.color = "#f1c40f";
                         bar.style.backgroundColor = "#f1c40f";
                     }
-                    const h = Math.floor(diff / 3600000);
-                    const m = Math.floor((diff % 3600000) / 60000);
-                    const s = Math.floor((diff % 60000) / 1000);
-                    timerTxt.textContent = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+                    const h = Math.floor(diff / 3600000).toString().padStart(2,'0');
+                    const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0');
+                    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
+                    timerTxt.textContent = `${h}:${m}:${s}`;
                 }
             });
         }
@@ -215,13 +241,13 @@ function render() {
     ['Comum', 'Universal'].forEach(type => {
         const section = document.createElement('section');
         section.className = 'type-section';
-        section.innerHTML = '<h2>' + BOSS_DATA[type].name + '</h2>';
+        section.innerHTML = `<h2>${BOSS_DATA[type].name}</h2>`;
         const grid = document.createElement('div');
         grid.className = 'floors-container';
         for (const f in BOSS_DATA[type].floors) {
             const floorDiv = document.createElement('div');
             floorDiv.className = 'floor-section';
-            let floorHtml = '<h3>' + f + '</h3><div class="boss-grid">';
+            let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
@@ -242,10 +268,7 @@ function render() {
                             <p class="label-nasce">Nasce: <span>${nStr}</span></p>
                         </div>
                         <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
-                        <div class="manual-box">
-                            <input type="time" id="manual-input-${boss.id}" step="1">
-                            <button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button>
-                        </div>
+                        <div class="manual-box"><input type="time" id="manual-input-${boss.id}" step="1"><button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button></div>
                         <div class="action-footer">
                             <button class="undo-btn" onclick="undoKill('${boss.id}')">↩ Desfazer</button>
                             <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
@@ -275,17 +298,17 @@ async function sendFullReportToDiscord() {
     });
 
     const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
-    let fullDescription = "**⏳ PRÓXIMOS RESPAWNS**\n";
+    let desc = "**⏳ PRÓXIMOS RESPAWNS**\n";
     if (active.length > 0) {
         active.forEach(b => {
-            fullDescription += '• **' + b.name + '** (' + b.typeLabel + ' - ' + b.floor + ') -> **' + new Date(b.respawnTime).toLocaleTimeString('pt-BR') + '**\n';
+            desc += `• **${b.name}** (${b.typeLabel} - ${b.floor}) -> **${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}**\n`;
         });
-    } else { fullDescription += "Nenhum no momento.\n"; }
+    } else { desc += "Nenhum no momento.\n"; }
 
     const payload = {
         embeds: [{
             title: "⚔️ STATUS DOS BOSSES - LEGEND OF YMIR",
-            description: fullDescription.substring(0, 4000),
+            description: desc.substring(0, 4000),
             color: 5814783,
             footer: { text: 'Enviado por: ' + (currentUser ? currentUser.displayName : 'Sistema') },
             timestamp: new Date().toISOString()
@@ -294,7 +317,7 @@ async function sendFullReportToDiscord() {
 
     try {
         const response = await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        btn.textContent = response.ok ? "✅ Sincronizado!" : "❌ Erro 400";
+        btn.textContent = response.ok ? "✅ Sincronizado!" : "❌ Erro";
     } catch (err) { btn.textContent = "❌ Erro Rede"; }
     finally { setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000); }
 }
@@ -307,7 +330,7 @@ function exportReport() {
         }
     });
     const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
-    let text = "⚔️ RELATÓRIO DE BOSSES - YMIR ⚔️\n\n⏳ PRÓXIMOS RESPAWNS:\n" + active.map(b => b.typeLabel + " - " + b.floor + " - " + b.name + ": " + new Date(b.respawnTime).toLocaleTimeString('pt-BR')).join('\n');
+    let text = "⚔️ RELATÓRIO DE BOSSES - YMIR ⚔️\n\n⏳ PRÓXIMOS RESPAWNS:\n" + active.map(b => `${b.typeLabel} - ${b.floor} - ${b.name}: ${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}`).join('\n');
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
