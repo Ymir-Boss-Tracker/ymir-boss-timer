@@ -16,12 +16,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// LINKS OFICIAIS ADICIONADOS
+// LINKS ATUALIZADOS (Berserker, Mage e Skald configurados)
 const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
-    "Lancer": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", // Placeholder transparente
-    "Skald": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"   // Placeholder transparente
+    "Skald": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1765787227812-7b4097e1-2482-4a21-8dae-c719866db8f6.png",
+    "Lancer": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" // Placeholder transparente
 };
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
@@ -274,12 +274,12 @@ function exportReport() {
     let all = [];
     ['Comum', 'Universal'].forEach(t => { for(const f in BOSS_DATA[t].floors) BOSS_DATA[t].floors[f].bosses.forEach(b => all.push({...b})); });
     let active = all.filter(b => b.respawnTime > 0).sort((a,b) => a.respawnTime - b.respawnTime);
-    let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\\n\\n`;
+    let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\n\n`;
     active.forEach(b => {
         const dur = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
         const n = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
         const m = new Date(b.respawnTime - dur).toLocaleTimeString('pt-BR');
-        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\\n\\n`;
+        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\n\n`;
     });
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
