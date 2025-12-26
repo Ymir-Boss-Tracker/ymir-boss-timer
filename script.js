@@ -16,7 +16,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// LINKS ATUALIZADOS - SKALD COM NOVO LINK
+// LINKS ATUALIZADOS
 const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
@@ -31,6 +31,8 @@ const BOSS_NAMES = ["Lancer", "Berserker", "Skald", "Mage"];
 let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal': { name: 'Folkvangr Universal', floors: {} } };
 let currentUser = null;
 let isCompactView = false;
+
+// ... (Lógica de autenticação e timers igual à anterior)
 
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
@@ -269,11 +271,9 @@ function exportImage() {
     }, 500);
 }
 
-// RELATÓRIO OTIMIZADO PARA DISCORD EM ORDEM CRONOLÓGICA
 function exportReport() {
     const agora = new Date();
     let allBosses = [];
-
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
             BOSS_DATA[type].floors[f].bosses.forEach(b => { allBosses.push({ ...b }); });
@@ -316,7 +316,7 @@ function exportReport() {
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Relatorio_Ymir_Discord.txt`;
+    link.download = `Relatorio_Discord_Ymir.txt`;
     link.click();
 }
 
