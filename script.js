@@ -197,7 +197,8 @@ function updateBossTimers() {
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
                 const timerTxt = document.getElementById('timer-' + boss.id);
                 const bar = document.getElementById('bar-' + boss.id);
-                if (!timerTxt || !bar) return;
+                const card = document.getElementById('card-' + boss.id); // Captura o card para o alerta visual
+                if (!timerTxt || !bar || !card) return;
 
                 if (boss.respawnTime === 0 || boss.respawnTime <= now) {
                     boss.respawnTime = 0;
@@ -205,6 +206,7 @@ function updateBossTimers() {
                     timerTxt.style.color = "#2ecc71";
                     bar.style.width = "100%";
                     bar.style.backgroundColor = "#2ecc71";
+                    card.classList.remove('alert');
                 } else {
                     const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                     const diff = boss.respawnTime - now;
@@ -214,6 +216,7 @@ function updateBossTimers() {
                     if (diff <= FIVE_MINUTES_MS) {
                         timerTxt.style.color = "#ff4d4d";
                         bar.style.backgroundColor = "#ff4d4d";
+                        card.classList.add('alert'); // Adiciona borda vermelha
                         if (!boss.alerted) {
                             document.getElementById('alert-sound').play().catch(() => {});
                             boss.alerted = true; save();
@@ -221,6 +224,7 @@ function updateBossTimers() {
                     } else {
                         timerTxt.style.color = "#f1c40f";
                         bar.style.backgroundColor = "#f1c40f";
+                        card.classList.remove('alert'); // Remove se estiver longe do respawn
                     }
                     const h = Math.floor(diff / 3600000).toString().padStart(2,'0');
                     const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0');
