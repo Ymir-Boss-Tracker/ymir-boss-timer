@@ -52,17 +52,23 @@ async function sendFullReportToDiscord() {
     const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
     const available = allBosses.filter(b => b.respawnTime === 0);
 
-    // Formatação segura: Usamos crases apenas em volta do horário e garantimos que a string não quebre
-    const nextRespawnsText = active.length > 0 
-        ? active.map(b => {
+    // Formatação SEM CRASES para evitar erros no Discord
+    let nextRespawnsText = "";
+    if (active.length > 0) {
+        nextRespawnsText = active.map(b => {
             const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
-            return `• **${b.name}** (${b.typeLabel} - ${b.floor}) -> \`${timeStr}\``;
-        }).join('\n')
-        : "Nenhum no momento.";
+            return '• **' + b.name + '** (' + b.typeLabel + ' - ' + b.floor + ') -> **' + timeStr + '**';
+        }).join('\n');
+    } else {
+        nextRespawnsText = "Nenhum no momento.";
+    }
 
-    const availableText = available.length > 0
-        ? available.map(b => `${b.name} (${b.typeLabel} - ${b.floor})`).join(', ')
-        : "Nenhum boss disponível.";
+    let availableText = "";
+    if (available.length > 0) {
+        availableText = available.map(b => b.name + ' (' + b.typeLabel + ' - ' + b.floor + ')').join(', ');
+    } else {
+        availableText = "Nenhum boss disponível.";
+    }
 
     const payload = {
         embeds: [{
@@ -72,7 +78,7 @@ async function sendFullReportToDiscord() {
                 { name: "⏳ PRÓXIMOS RESPAWNS", value: nextRespawnsText.substring(0, 1024) },
                 { name: "⚪ SEM INFORMAÇÃO", value: availableText.substring(0, 1024) }
             ],
-            footer: { text: `Enviado por: ${currentUser ? currentUser.displayName : 'Sistema'}` },
+            footer: { text: 'Enviado por: ' + (currentUser ? currentUser.displayName : 'Sistema') },
             timestamp: new Date().toISOString()
         }]
     };
@@ -120,7 +126,7 @@ onAuthStateChanged(auth, (user) => {
         currentUser = user;
         document.getElementById('login-btn').style.display = 'none';
         document.getElementById('user-info').style.display = 'block';
-        document.getElementById('user-name').textContent = `Olá, ${user.displayName}`;
+        document.getElementById('user-name').textContent = 'Olá, ' + user.displayName;
         document.getElementById('app-content').style.display = 'block';
         loadUserData();
     } else {
@@ -134,11 +140,11 @@ onAuthStateChanged(auth, (user) => {
 function initializeBossData() {
     ['Comum', 'Universal'].forEach(type => {
         for (let p = 1; p <= 4; p++) {
-            const floorKey = `Piso ${p}`;
+            const floorKey = 'Piso ' + p;
             BOSS_DATA[type].floors[floorKey] = { name: floorKey, bosses: [] };
             BOSS_NAMES.forEach(bossName => {
                 BOSS_DATA[type].floors[floorKey].bosses.push({
-                    id: `${type.toLowerCase()}_${p}_${bossName.toLowerCase()}`,
+                    id: type.toLowerCase() + '_' + p + '_' + bossName.toLowerCase(),
                     name: bossName, respawnTime: 0, alerted: false, floor: floorKey, type: type,
                     image: BOSS_IMAGES[bossName]
                 });
@@ -192,7 +198,7 @@ window.killBoss = (id) => {
 };
 
 window.setManualTime = (id) => {
-    const val = document.getElementById(`manual-input-${id}`).value;
+    const val = document.getElementById('manual-input-' + id).value;
     if (!val) return alert("Selecione o horário!");
     const parts = val.split(':').map(Number);
     const d = new Date(); d.setHours(parts[0], parts[1], parts[2] || 0, 0);
@@ -227,9 +233,9 @@ function updateBossTimers() {
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
-                const timerTxt = document.getElementById(`timer-${boss.id}`);
-                const card = document.getElementById(`card-${boss.id}`);
-                const bar = document.getElementById(`bar-${boss.id}`);
+                const timerTxt = document.getElementById('timer-' + boss.id);
+                const card = document.getElementById('card-' + boss.id);
+                const bar = document.getElementById('bar-' + boss.id);
                 if (!timerTxt || !bar) return;
 
                 if (boss.respawnTime === 0 || boss.respawnTime <= now) {
@@ -243,7 +249,7 @@ function updateBossTimers() {
                     const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                     const diff = boss.respawnTime - now;
                     const percent = (diff / duration) * 100;
-                    bar.style.width = `${percent}%`;
+                    bar.style.width = percent + '%';
 
                     if (diff <= FIVE_MINUTES_MS) {
                         timerTxt.style.color = "#ff4d4d";
@@ -261,7 +267,7 @@ function updateBossTimers() {
                     const h = Math.floor(diff / 3600000);
                     const m = Math.floor((diff % 3600000) / 60000);
                     const s = Math.floor((diff % 60000) / 1000);
-                    timerTxt.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                    timerTxt.textContent = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
                 }
             });
         }
@@ -274,32 +280,31 @@ function render() {
     ['Comum', 'Universal'].forEach(type => {
         const section = document.createElement('section');
         section.className = 'type-section';
-        section.innerHTML = `<h2>${BOSS_DATA[type].name}</h2>`;
+        section.innerHTML = '<h2>' + BOSS_DATA[type].name + '</h2>';
         const grid = document.createElement('div');
         grid.className = 'floors-container';
         for (const f in BOSS_DATA[type].floors) {
             const floorDiv = document.createElement('div');
             floorDiv.className = 'floor-section';
-            let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
+            let floorHtml = '<h3>' + f + '</h3><div class="boss-grid">';
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-                floorHtml += `
-                    <div class="boss-card" id="card-${boss.id}">
-                        <div class="boss-header">
-                            <img src="${boss.image}" class="boss-thumb" alt="${boss.name}">
-                            <h4>${boss.name}</h4>
-                        </div>
-                        <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
-                        <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
-                        <div class="static-times"><p>Morto: <span>${mStr}</span></p><p>Nasce: <span>${nStr}</span></p></div>
-                        <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
-                        <div class="manual-box"><input type="time" id="manual-input-${boss.id}" step="1"><button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button></div>
-                        <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
-                    </div>`;
+                floorHtml += '<div class="boss-card" id="card-' + boss.id + '">' +
+                        '<div class="boss-header">' +
+                            '<img src="' + boss.image + '" class="boss-thumb" alt="' + boss.name + '">' +
+                            '<h4>' + boss.name + '</h4>' +
+                        '</div>' +
+                        '<div class="timer" id="timer-' + boss.id + '">DISPONÍVEL!</div>' +
+                        '<div class="boss-progress-container"><div class="boss-progress-bar" id="bar-' + boss.id + '"></div></div>' +
+                        '<div class="static-times"><p>Morto: <span>' + mStr + '</span></p><p>Nasce: <span>' + nStr + '</span></p></div>' +
+                        '<button class="kill-btn" onclick="killBoss(\'' + boss.id + '\')">Derrotado AGORA</button>' +
+                        '<div class="manual-box"><input type="time" id="manual-input-' + boss.id + '" step="1"><button class="conf-btn" onclick="setManualTime(\'' + boss.id + '\')">OK</button></div>' +
+                        '<button class="reset-btn" onclick="resetBoss(\'' + boss.id + '\')">Resetar</button>' +
+                    '</div>';
             });
-            floorDiv.innerHTML = floorHtml + `</div>`;
+            floorDiv.innerHTML = floorHtml + '</div>';
             grid.appendChild(floorDiv);
         }
         section.appendChild(grid);
@@ -319,18 +324,18 @@ function exportReport() {
     const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
     const available = allBosses.filter(b => b.respawnTime === 0);
 
-    let text = `⚔️ RELATÓRIO DE BOSSES - YMIR ⚔️\n\n`;
-    text += `⏳ PRÓXIMOS RESPAWNS:\n`;
+    let text = "⚔️ RELATÓRIO DE BOSSES - YMIR ⚔️\n\n";
+    text += "⏳ PRÓXIMOS RESPAWNS:\n";
     active.forEach(b => {
-        text += `${b.typeLabel} - ${b.floor} - ${b.name}: ${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}\n`;
+        text += b.typeLabel + " - " + b.floor + " - " + b.name + ": " + new Date(b.respawnTime).toLocaleTimeString('pt-BR') + "\n";
     });
-    text += `\n⚪ SEM INFORMAÇÃO:\n`;
-    available.forEach(b => { text += `${b.typeLabel} - ${b.floor} - ${b.name}\n`; });
+    text += "\n⚪ SEM INFORMAÇÃO:\n";
+    available.forEach(b => { text += b.typeLabel + " - " + b.floor + " - " + b.name + "\n"; });
 
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Relatorio_Ymir.txt`;
+    link.download = 'Relatorio_Ymir.txt';
     link.click();
 }
 
