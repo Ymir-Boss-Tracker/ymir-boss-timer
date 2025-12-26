@@ -41,9 +41,18 @@ header.main-banner {
     padding: 15px; border-radius: 6px; border-left: 4px solid #d4af37;
 }
 
+/* ALTERAÇÃO: Foco no rosto */
 .boss-header { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: 10px; }
-.boss-thumb { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; background: #000; }
-.boss-thumb[src*="data:image"] { border-color: transparent; background: transparent; } /* Esconde borda se não houver imagem */
+.boss-thumb { 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    border: 2px solid #d4af37; 
+    object-fit: cover; 
+    object-position: top center; 
+    background: #000; 
+}
+.boss-thumb[src*="data:image"] { border-color: transparent; background: transparent; }
 
 .boss-card.alert { border-left-color: #e74c3c; animation: pulse 1s infinite alternate; }
 
@@ -75,7 +84,6 @@ button { cursor: pointer; border-radius: 4px; border: none; font-weight: bold; t
 .compact-mode .static-times { display: flex; gap: 10px; background: none; margin: 0; }
 .compact-mode .kill-btn, .compact-mode .manual-box, .compact-mode .reset-btn { margin: 0; }
 
-/* EXPORTAÇÃO */
 .export-group { display: flex; gap: 10px; width: 100%; }
 .export-button { background: #f1c40f; color: #000; flex: 1; padding: 15px; font-size: 1rem; }
 .export-img-button { background: #3498db; color: #fff; flex: 1; padding: 15px; font-size: 1rem; }
