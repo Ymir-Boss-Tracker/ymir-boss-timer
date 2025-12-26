@@ -16,6 +16,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+// LINKS OFICIAIS ADICIONADOS
+const BOSS_IMAGES = {
+    "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
+    "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
+    "Lancer": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", // Placeholder transparente
+    "Skald": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"   // Placeholder transparente
+};
+
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const FIVE_MINUTES_MS = 5 * 1000 * 60;
@@ -24,7 +32,6 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// Alternar Visão
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     const container = document.getElementById('boss-list-container');
@@ -68,7 +75,8 @@ function initializeBossData() {
             BOSS_NAMES.forEach(bossName => {
                 BOSS_DATA[type].floors[floorKey].bosses.push({
                     id: `${type.toLowerCase()}_${p}_${bossName.toLowerCase()}`,
-                    name: bossName, respawnTime: 0, alerted: false, floor: floorKey, type: type
+                    name: bossName, respawnTime: 0, alerted: false, floor: floorKey, type: type,
+                    image: BOSS_IMAGES[bossName]
                 });
             });
         }
@@ -215,7 +223,10 @@ function render() {
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
                 floorHtml += `
                     <div class="boss-card" id="card-${boss.id}">
-                        <h4>${boss.name}</h4>
+                        <div class="boss-header">
+                            <img src="${boss.image}" class="boss-thumb" alt="${boss.name}">
+                            <h4>${boss.name}</h4>
+                        </div>
                         <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
                         <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
                         <div class="static-times"><p>Morto: <span>${mStr}</span></p><p>Nasce: <span>${nStr}</span></p></div>
@@ -236,7 +247,6 @@ function render() {
 function exportImage() {
     const btnImg = document.getElementById('export-img-btn');
     const originalText = btnImg.textContent;
-
     document.body.classList.add('printing');
     btnImg.textContent = "📸 Gerando...";
 
@@ -245,14 +255,14 @@ function exportImage() {
             backgroundColor: "#0a0a0c",
             scale: 2,
             logging: false,
-            useCORS: true
+            useCORS: true,
+            allowTaint: true
         }).then(canvas => {
             const link = document.createElement('a');
             const dataAtual = new Date().toLocaleDateString().replace(/\//g, '-');
             link.download = `Status_Boss_Ymir_${dataAtual}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-
             document.body.classList.remove('printing');
             btnImg.textContent = originalText;
         });
@@ -264,13 +274,12 @@ function exportReport() {
     let all = [];
     ['Comum', 'Universal'].forEach(t => { for(const f in BOSS_DATA[t].floors) BOSS_DATA[t].floors[f].bosses.forEach(b => all.push({...b})); });
     let active = all.filter(b => b.respawnTime > 0).sort((a,b) => a.respawnTime - b.respawnTime);
-    let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\n\n`;
-    text += `>>> PRÓXIMOS RESPAWNS <<<\n\n`;
+    let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\\n\\n`;
     active.forEach(b => {
         const dur = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
         const n = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
         const m = new Date(b.respawnTime - dur).toLocaleTimeString('pt-BR');
-        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\n\n`;
+        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\\n\\n`;
     });
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
