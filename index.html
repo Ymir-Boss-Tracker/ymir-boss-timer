@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ymir Boss Timer Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <header class="main-banner">
@@ -30,7 +31,10 @@
         <main id="boss-list-container"></main>
 
         <section class="global-actions">
-            <button class="export-button" id="export-btn">📥 Gerar Relatório Cronológico TXT</button>
+            <div class="export-group">
+                <button class="export-button" id="export-btn">📥 Relatório TXT</button>
+                <button class="export-img-button" id="export-img-btn">🖼️ Gerar Print (Imagem)</button>
+            </div>
             <button id="reset-all-btn" class="reset-all-button">⚠️ Resetar TODOS os Timers</button>
         </section>
 
