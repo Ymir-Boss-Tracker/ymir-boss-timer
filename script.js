@@ -2,6 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// WEBHOOK CONFIGURADO
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1453986988125458524/dFMLs1p0MGfMB9asjuYErVLdz8r0mcfnSJT1OT_weNbDy9Oux9mm8-3cZwr9pCtRiluI";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCjWmsnTIA8hJDw-rJC5iJhPhwbK-U1_YU",
   authDomain: "ymir-boss-tracker.firebaseapp.com",
@@ -16,7 +19,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// LINKS ATUALIZADOS
 const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
@@ -32,7 +34,35 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// ... (Lógica de autenticação e timers igual à anterior)
+// FUNÇÃO PARA ENVIAR ALERTA AO DISCORD
+async function sendDiscordAlert(boss, mortoTime, nasceTime) {
+    if (!DISCORD_WEBHOOK_URL) return;
+
+    const payload = {
+        embeds: [{
+            title: `⚔️ BOSS DERROTADO: ${boss.name}`,
+            color: boss.type === 'Universal' ? 10181046 : 15844367, 
+            fields: [
+                { name: "📍 Local", value: `${boss.type} - ${boss.floor}`, inline: true },
+                { name: "👤 Killer", value: currentUser ? currentUser.displayName : "Desconhecido", inline: true },
+                { name: "💀 Morto às", value: mortoTime, inline: true },
+                { name: "⏳ Próximo Respawn", value: `**${nasceTime}**`, inline: true }
+            ],
+            footer: { text: "Ymir Boss Tracker • Atualização em Tempo Real" },
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    try {
+        await fetch(DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (err) {
+        console.error("Erro ao enviar para Discord:", err);
+    }
+}
 
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
@@ -122,9 +152,14 @@ function findBossById(id) {
 
 window.killBoss = (id) => {
     const b = findBossById(id);
+    const now = Date.now();
     const duration = id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS;
-    b.respawnTime = Date.now() + duration;
+    b.respawnTime = now + duration;
     b.alerted = false;
+    
+    // Alerta Discord
+    sendDiscordAlert(b, new Date(now).toLocaleTimeString('pt-BR'), new Date(b.respawnTime).toLocaleTimeString('pt-BR'));
+    
     save();
     render();
 };
@@ -139,6 +174,10 @@ window.setManualTime = (id) => {
     const duration = id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS;
     b.respawnTime = d.getTime() + duration;
     b.alerted = false;
+    
+    // Alerta Discord para manual
+    sendDiscordAlert(b, new Date(d.getTime()).toLocaleTimeString('pt-BR'), new Date(b.respawnTime).toLocaleTimeString('pt-BR'));
+    
     save();
     render();
 };
