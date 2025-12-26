@@ -99,7 +99,7 @@ window.killBoss = (id) => {
     b.respawnTime = Date.now() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
     b.alerted = false;
     save();
-    render(); // Forçar render para atualizar Morto/Nasce
+    render();
 };
 
 window.setManualTime = (id) => {
@@ -150,19 +150,28 @@ function updateBossTimers() {
                 if (boss.respawnTime === 0 || boss.respawnTime <= now) {
                     boss.respawnTime = 0;
                     timerTxt.textContent = "DISPONÍVEL!";
+                    timerTxt.style.color = "#2ecc71"; // VERDE para disponível
                     card.classList.remove('alert');
                 } else {
                     const diff = boss.respawnTime - now;
-                    if (diff <= FIVE_MINUTES_MS && !boss.alerted) {
-                        document.getElementById('alert-sound').play().catch(() => {});
-                        boss.alerted = true;
-                        save();
+                    
+                    if (diff <= FIVE_MINUTES_MS) {
+                        timerTxt.style.color = "#ff4d4d"; // VERMELHO faltando 5min
+                        if (!boss.alerted) {
+                            document.getElementById('alert-sound').play().catch(() => {});
+                            boss.alerted = true;
+                            save();
+                        }
+                        card.classList.add('alert');
+                    } else {
+                        timerTxt.style.color = "#f1c40f"; // AMARELO em andamento
+                        card.classList.remove('alert');
                     }
+
                     const h = Math.floor(diff / 3600000);
                     const m = Math.floor((diff % 3600000) / 60000);
                     const s = Math.floor((diff % 60000) / 1000);
                     timerTxt.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                    card.classList.toggle('alert', diff <= FIVE_MINUTES_MS);
                 }
             });
         }
@@ -225,20 +234,25 @@ function exportReport() {
     let inactive = allBosses.filter(b => b.respawnTime === 0);
 
     let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\n\n`;
-    text += `>>> PRÓXIMOS RESPANS <<<\n`;
+    text += `>>> PRÓXIMOS RESPANS <<<\n\n`;
     active.forEach(b => {
         const dur = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
         const n = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
         const m = new Date(b.respawnTime - dur).toLocaleTimeString('pt-BR');
-        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\n`;
+        // Pula uma linha por boss
+        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\n\n`;
     });
-    text += `\n>>> DISPONÍVEIS <<<\n`;
-    inactive.forEach(b => text += `[${b.type}] ${b.floor} - ${b.name}\n`);
+    
+    text += `\n==============================================\n`;
+    text += `>>> BOSSES DISPONÍVEIS <<<\n\n`;
+    inactive.forEach(b => {
+        text += `[${b.type}] ${b.floor} - ${b.name}\n\n`;
+    });
 
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Relatorio_Ymir.txt`;
+    link.download = `Relatorio_Ymir_Cronologico.txt`;
     link.click();
 }
 
