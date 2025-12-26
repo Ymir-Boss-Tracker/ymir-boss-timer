@@ -26,6 +26,36 @@ header.main-banner {
     display: flex; align-items: center; justify-content: center;
 }
 
+/* Banner de Próximo Boss */
+.next-boss-highlight {
+    background: linear-gradient(90deg, #1a1a1a 0%, #2c3e50 50%, #1a1a1a 100%);
+    border-top: 2px solid #d4af37;
+    border-bottom: 2px solid #d4af37;
+    padding: 15px;
+    margin: 10px 0 20px 0;
+    color: #f1c40f;
+    font-weight: bold;
+}
+
+.next-boss-info {
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.next-boss-timer {
+    font-family: monospace;
+    font-size: 1.4rem;
+    color: #fff;
+    background: #000;
+    padding: 2px 10px;
+    border-radius: 4px;
+    border: 1px solid #d4af37;
+}
+
 .view-toggle-container { margin: 20px 0; }
 .toggle-btn { background: #2c3e50; color: white; padding: 10px 20px; border: 1px solid #d4af37; border-radius: 20px; cursor: pointer; }
 
@@ -53,21 +83,14 @@ header.main-banner {
 }
 
 .thumb-container {
-    width: 55px;
-    height: 55px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 55px; height: 55px;
+    display: flex; align-items: center; justify-content: center;
 }
 
 .boss-thumb { 
-    width: 55px; 
-    height: 55px; 
-    border-radius: 50%; 
-    border: 2px solid #d4af37; 
-    object-fit: cover; 
-    object-position: top; 
-    background: #000; 
+    width: 55px; height: 55px; border-radius: 50%; 
+    border: 2px solid #d4af37; object-fit: cover; 
+    object-position: top; background: #000; 
 }
 
 .boss-header h4 { margin: 0; font-size: 1.1rem; color: #fff; text-align: left; }
@@ -78,14 +101,9 @@ header.main-banner {
 .boss-progress-bar { height: 100%; transition: width 1s linear; }
 
 .static-times { 
-    background: #0d0d0d; 
-    padding: 10px; 
-    border-radius: 8px; 
-    margin-bottom: 15px; 
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    align-items: center;
+    background: #0d0d0d; padding: 10px; border-radius: 8px; 
+    margin-bottom: 15px; display: flex; flex-direction: column; 
+    gap: 5px; align-items: center;
 }
 .static-times p { margin: 0; font-size: 0.9rem; font-weight: bold; }
 .static-times .label-morto { color: #e67e22; }
@@ -97,7 +115,7 @@ header.main-banner {
 .manual-box input { flex: 1; background: #000; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; }
 .conf-btn { background: #2ecc71; color: #fff; padding: 5px 15px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; }
 
-/* RODAPÉ DE AÇÕES LADO A LADO */
+/* Botões Desfazer e Resetar Lado a Lado */
 .action-footer { display: flex; gap: 5px; margin-top: 5px; }
 .undo-btn { background: #444; color: #f1c40f; flex: 1; padding: 8px; font-size: 0.75rem; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
 .reset-btn { background: #2a2a2a; color: #777; flex: 1; padding: 8px; font-size: 0.75rem; cursor: pointer; border: none; border-radius: 4px; }
