@@ -18,7 +18,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Removida a imagem do Lancer
 const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
@@ -34,6 +33,7 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
+// Função para enviar relatório ao Discord
 async function sendFullReportToDiscord() {
     if (!DISCORD_WEBHOOK_URL) return;
     const btn = document.getElementById('sync-discord-btn');
@@ -94,11 +94,12 @@ async function sendFullReportToDiscord() {
     }
 }
 
+// Alternar entre modo compacto e cards
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     const btn = document.getElementById('toggle-view-btn');
     btn.textContent = isCompactView ? "🎴 Alternar para Modo Cards" : "📱 Alternar para Modo Compacto";
-    render();
+    render(); // Re-renderiza para aplicar a classe correta
 };
 
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
@@ -124,6 +125,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 function initializeBossData() {
+    BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal': { name: 'Folkvangr Universal', floors: {} } };
     ['Comum', 'Universal'].forEach(type => {
         for (let p = 1; p <= 4; p++) {
             const floorKey = 'Piso ' + p;
@@ -263,6 +265,14 @@ function updateBossTimers() {
 function render() {
     const container = document.getElementById('boss-list-container');
     container.innerHTML = '';
+    
+    // Aplica ou remove a classe ANTES de renderizar os itens
+    if (isCompactView) {
+        container.classList.add('compact-mode');
+    } else {
+        container.classList.remove('compact-mode');
+    }
+
     ['Comum', 'Universal'].forEach(type => {
         const section = document.createElement('section');
         section.className = 'type-section';
@@ -278,7 +288,6 @@ function render() {
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
                 
-                // Lógica para esconder a imagem se estiver vazia
                 const bossImgHtml = boss.image ? `<img src="${boss.image}" class="boss-thumb" alt="${boss.name}">` : '';
 
                 floorHtml += `<div class="boss-card" id="card-${boss.id}">
@@ -300,7 +309,6 @@ function render() {
         section.appendChild(grid);
         container.appendChild(section);
     });
-    if (isCompactView) container.classList.add('compact-mode');
 }
 
 function exportReport() {
