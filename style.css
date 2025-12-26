@@ -72,7 +72,7 @@ button { cursor: pointer; border-radius: 4px; border: none; font-weight: bold; t
 .reset-btn { background: #333; color: #888; width: 100%; padding: 6px; font-size: 0.8rem; }
 
 .export-group { display: flex; gap: 10px; width: 100%; }
-.export-button { background: #f1c40f; color: #000; flex: 1; padding: 15px; font-size: 1rem; }
+.export-button { background: #f1c40f; color: #000; flex: 1; padding: 15px; font-size: 1rem; border-radius: 4px; }
 
 .sync-discord-button { 
     background: #5865F2; 
@@ -86,7 +86,7 @@ button { cursor: pointer; border-radius: 4px; border: none; font-weight: bold; t
 .sync-discord-button:hover { background: #4752c4; }
 
 .global-actions { margin: 40px auto; max-width: 500px; display: flex; flex-direction: column; gap: 10px; padding: 0 20px; }
-.reset-all-button { background: #c0392b; color: #fff; padding: 12px; }
+.reset-all-button { background: #c0392b; color: #fff; padding: 12px; border-radius: 4px; }
 
 @keyframes pulse { from { box-shadow: 0 0 4px #e74c3c; } to { box-shadow: 0 0 12px #e74c3c; } }
 @media (max-width: 1100px) { .boss-grid { grid-template-columns: repeat(2, 1fr); } }
