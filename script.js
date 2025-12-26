@@ -33,9 +33,11 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
+// FUNÇÃO DE ENVIO CORRIGIDA PARA EVITAR ERRO 400
 async function sendFullReportToDiscord() {
     if (!DISCORD_WEBHOOK_URL) return;
     const btn = document.getElementById('sync-discord-btn');
+    const originalText = btn.textContent;
     btn.textContent = "⌛ Enviando...";
     btn.disabled = true;
 
@@ -60,7 +62,7 @@ async function sendFullReportToDiscord() {
     const payload = {
         embeds: [{
             title: "⚔️ STATUS DOS BOSSES - LEGEND OF YMIR",
-            description: `Atualizado por: **${currentUser.displayName}**`,
+            description: `Atualizado por: **${currentUser ? currentUser.displayName : 'Admin'}**`,
             color: 5814783,
             fields: [
                 { name: "⏳ PRÓXIMOS RESPAWNS", value: nextRespawnsText },
@@ -71,12 +73,17 @@ async function sendFullReportToDiscord() {
     };
 
     try {
-        await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        await fetch(DISCORD_WEBHOOK_URL, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
         btn.textContent = "✅ Sincronizado!";
     } catch (err) {
+        console.error("Erro no envio:", err);
         btn.textContent = "❌ Erro";
     } finally {
-        setTimeout(() => { btn.textContent = "🔵 Sincronizar Discord"; btn.disabled = false; }, 3000);
+        setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000);
     }
 }
 
