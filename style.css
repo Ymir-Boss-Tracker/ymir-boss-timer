@@ -49,8 +49,32 @@ header.main-banner {
 .boss-card { background: #16161a; border: 1px solid #333; border-radius: 8px; padding: 15px; transition: 0.3s; }
 .boss-card.alert { border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); }
 
-.boss-header { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
-.boss-thumb { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; object-position: top; background: #000; }
+.boss-header { 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+    margin-bottom: 10px; 
+    min-height: 60px; /* Mantém o alinhamento mesmo sem foto */
+}
+
+.thumb-container {
+    width: 55px;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.boss-thumb { 
+    width: 55px; 
+    height: 55px; 
+    border-radius: 50%; 
+    border: 2px solid #d4af37; 
+    object-fit: cover; 
+    object-position: top; /* Foca no rosto */
+    background: #000; 
+}
+
 .boss-header h4 { margin: 0; font-size: 1.1rem; color: #fff; }
 
 .timer { font-size: 1.6rem; font-weight: bold; margin: 10px 0; font-family: monospace; }
@@ -72,10 +96,10 @@ header.main-banner {
 .sync-discord-button { background: #5865F2; color: white; padding: 12px 24px; border-radius: 4px; font-weight: bold; cursor: pointer; }
 .reset-all-button { background: #ff4d4d; color: white; padding: 12px 24px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; }
 
-/* MODO COMPACTO - Força o layout em grid menor e oculta detalhes */
+/* MODO COMPACTO */
 .compact-mode .boss-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important; }
 .compact-mode .boss-thumb { display: none !important; }
-.compact-mode .boss-header { justify-content: center !important; }
+.compact-mode .boss-header { justify-content: center !important; min-height: auto !important; }
 .compact-mode .manual-box { display: none !important; }
 .compact-mode .timer { font-size: 1.2rem !important; }
 .compact-mode .static-times { flex-direction: column !important; font-size: 0.65rem !important; }
