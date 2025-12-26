@@ -18,12 +18,13 @@ const provider = new GoogleAuthProvider();
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const FIVE_MINUTES_MS = 5 * 1000 * 60;
 const BOSS_NAMES = ["Lancer", "Berserker", "Skald", "Mage"];
 let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal': { name: 'Folkvangr Universal', floors: {} } };
 let currentUser = null;
 let isCompactView = false;
 
+// Alternar Visão
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     const container = document.getElementById('boss-list-container');
@@ -40,6 +41,7 @@ document.getElementById('toggle-view-btn').onclick = () => {
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('logout-btn').onclick = () => signOut(auth);
 document.getElementById('export-btn').onclick = () => exportReport();
+document.getElementById('export-img-btn').onclick = () => exportImage();
 document.getElementById('reset-all-btn').onclick = () => resetAllTimers();
 
 onAuthStateChanged(auth, (user) => {
@@ -110,7 +112,8 @@ function findBossById(id) {
 
 window.killBoss = (id) => {
     const b = findBossById(id);
-    b.respawnTime = Date.now() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
+    const duration = id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    b.respawnTime = Date.now() + duration;
     b.alerted = false;
     save();
     render();
@@ -123,7 +126,8 @@ window.setManualTime = (id) => {
     const d = new Date(); d.setHours(parts[0], parts[1], parts[2] || 0, 0);
     if (d > new Date()) d.setDate(d.getDate() - 1);
     const b = findBossById(id);
-    b.respawnTime = d.getTime() + (id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS);
+    const duration = id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    b.respawnTime = d.getTime() + duration;
     b.alerted = false;
     save();
     render();
@@ -140,7 +144,7 @@ window.resetAllTimers = async () => {
     if (!confirm("Resetar tudo?")) return;
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
-            BOSS_DATA[type].floors[f].bosses.forEach(boss => { boss.respawnTime = 0; });
+            BOSS_DATA[type].floors[f].bosses.forEach(boss => { boss.respawnTime = 0; boss.alerted = false; });
         }
     });
     await save(); render();
@@ -227,6 +231,32 @@ function render() {
         container.appendChild(section);
     });
     if (isCompactView) container.classList.add('compact-mode');
+}
+
+function exportImage() {
+    const btnImg = document.getElementById('export-img-btn');
+    const originalText = btnImg.textContent;
+
+    document.body.classList.add('printing');
+    btnImg.textContent = "📸 Gerando...";
+
+    setTimeout(() => {
+        html2canvas(document.querySelector("#app-content"), {
+            backgroundColor: "#0a0a0c",
+            scale: 2,
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const dataAtual = new Date().toLocaleDateString().replace(/\//g, '-');
+            link.download = `Status_Boss_Ymir_${dataAtual}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+
+            document.body.classList.remove('printing');
+            btnImg.textContent = originalText;
+        });
+    }, 500);
 }
 
 function exportReport() {
