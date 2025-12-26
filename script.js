@@ -22,7 +22,7 @@ const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
     "Skald": "https://framerusercontent.com/images/XJzkQNlvMBB6ZOBgb6DUs5u1Mgk.png?width=1000&height=2280",
-    "Lancer": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
+    "Lancer": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png" 
 };
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
@@ -33,7 +33,7 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// FUNÇÃO DE ENVIO CORRIGIDA
+// FUNÇÃO DE ENVIO REFEITA DO ZERO PARA EVITAR ERRO 400
 async function sendFullReportToDiscord() {
     if (!DISCORD_WEBHOOK_URL) return;
     const btn = document.getElementById('sync-discord-btn');
@@ -44,44 +44,55 @@ async function sendFullReportToDiscord() {
     let allBosses = [];
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
-            BOSS_DATA[type].floors[f].bosses.forEach(b => { allBosses.push({ ...b }); });
+            BOSS_DATA[type].floors[f].bosses.forEach(b => { 
+                allBosses.push({ ...b }); 
+            });
         }
     });
 
     const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
     const available = allBosses.filter(b => b.respawnTime === 0);
 
-    let nextRespawnsText = active.length > 0 
-        ? active.map(b => `• **${b.name}** (${b.floor}) - Nasce às: \`${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}\``).join('\n')
-        : "Nenhum boss em contagem.";
+    // Formatação ultra-segura para o Discord
+    const nextRespawnsText = active.length > 0 
+        ? active.map(b => `• **${b.name}** (${b.floor}) -> \`${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}\``).join('\n')
+        : "Nenhum no momento.";
 
-    let availableText = available.length > 0
-        ? available.map(b => `✅ ${b.name} (${b.floor})`).join(', ')
-        : "Todos em cooldown.";
+    const availableText = available.length > 0
+        ? available.map(b => `${b.name} (${b.floor})`).join(', ')
+        : "Nenhum disponível.";
 
     const payload = {
+        content: null,
         embeds: [{
             title: "⚔️ STATUS DOS BOSSES - LEGEND OF YMIR",
-            description: `Atualizado por: **${currentUser ? currentUser.displayName : 'Admin'}**`,
             color: 5814783,
             fields: [
-                { name: "⏳ PRÓXIMOS RESPAWNS", value: nextRespawnsText },
-                { name: "🟢 DISPONÍVEIS AGORA", value: availableText }
+                { name: "⏳ PRÓXIMOS RESPAWNS", value: nextRespawnsText.substring(0, 1000) },
+                { name: "🟢 DISPONÍVEIS AGORA", value: availableText.substring(0, 1000) }
             ],
+            footer: { text: `Enviado por: ${currentUser ? currentUser.displayName : 'Sistema'}` },
             timestamp: new Date().toISOString()
         }]
     };
 
     try {
-        await fetch(DISCORD_WEBHOOK_URL, { 
+        const response = await fetch(DISCORD_WEBHOOK_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
         });
-        btn.textContent = "✅ Sincronizado!";
+
+        if (response.ok) {
+            btn.textContent = "✅ Sincronizado!";
+        } else {
+            const errorData = await response.json();
+            console.error("Erro Discord:", errorData);
+            btn.textContent = "❌ Erro 400";
+        }
     } catch (err) {
-        console.error("Erro no envio:", err);
-        btn.textContent = "❌ Erro";
+        console.error("Erro de Conexão:", err);
+        btn.textContent = "❌ Erro Rede";
     } finally {
         setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000);
     }
@@ -300,7 +311,6 @@ function render() {
 }
 
 function exportReport() {
-    const agora = new Date();
     let allBosses = [];
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
