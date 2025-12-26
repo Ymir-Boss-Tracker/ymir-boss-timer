@@ -16,12 +16,11 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// LINKS ATUALIZADOS (Berserker, Mage e Skald configurados)
 const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
     "Skald": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1765787227812-7b4097e1-2482-4a21-8dae-c719866db8f6.png",
-    "Lancer": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" // Placeholder transparente
+    "Lancer": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
 };
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
@@ -32,6 +31,7 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
+// ... (Funções de clique, auth, load e save permanecem as mesmas das versões anteriores)
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     const container = document.getElementById('boss-list-container');
@@ -269,22 +269,61 @@ function exportImage() {
     }, 500);
 }
 
+// NOVA FUNÇÃO DE RELATÓRIO MELHORADA PARA DISCORD
 function exportReport() {
     const agora = new Date();
-    let all = [];
-    ['Comum', 'Universal'].forEach(t => { for(const f in BOSS_DATA[t].floors) BOSS_DATA[t].floors[f].bosses.forEach(b => all.push({...b})); });
-    let active = all.filter(b => b.respawnTime > 0).sort((a,b) => a.respawnTime - b.respawnTime);
-    let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\n\n`;
-    active.forEach(b => {
-        const dur = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
-        const n = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
-        const m = new Date(b.respawnTime - dur).toLocaleTimeString('pt-BR');
-        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\n\n`;
+    let allBosses = [];
+
+    // Coletar todos os bosses de todas as categorias
+    ['Comum', 'Universal'].forEach(type => {
+        for (const f in BOSS_DATA[type].floors) {
+            BOSS_DATA[type].floors[f].bosses.forEach(b => {
+                allBosses.push({ ...b });
+            });
+        }
     });
+
+    // Separar em Ativos (com timer) e Disponíveis (sem timer)
+    const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
+    const available = allBosses.filter(b => b.respawnTime === 0);
+
+    let text = `╔════════════════════════════════════════╗\n`;
+    text += `  ⚔️ RELATÓRIO DE BOSSES - YMIR ⚔️  \n`;
+    text += `  Gerado em: ${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}\n`;
+    text += `╚════════════════════════════════════════╝\n\n`;
+
+    text += `>>> ⏳ PRÓXIMOS RESPAWNS (ORDEM CRONOLÓGICA)\n\n`;
+    text += `\`\`\`ml\n`;
+    if (active.length > 0) {
+        active.forEach(b => {
+            const duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+            const nasce = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
+            const morto = new Date(b.respawnTime - duration).toLocaleTimeString('pt-BR');
+            
+            const label = `[${b.type.substring(0,3)}] ${b.floor} - ${b.name}`;
+            text += `${label.padEnd(25)} | Morto: ${morto} | NASCE: ${nasce}\n`;
+        });
+    } else {
+        text += `Nenhum boss em contagem regressiva.\n`;
+    }
+    text += `\`\`\`\n\n`;
+
+    text += `>>> ✅ BOSSES DISPONÍVEIS / SEM INFO\n\n`;
+    text += `\`\`\`fix\n`;
+    if (available.length > 0) {
+        available.forEach(b => {
+            text += `[${b.type.substring(0,3)}] ${b.floor} - ${b.name}\n`;
+        });
+    } else {
+        text += `Todos os bosses estão em cooldown.\n`;
+    }
+    text += `\`\`\`\n\n`;
+    text += `*Copiado do Ymir Tracker* 🛡️`;
+
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Relatorio_Ymir.txt`;
+    link.download = `Relatorio_Discord_Ymir.txt`;
     link.click();
 }
 
