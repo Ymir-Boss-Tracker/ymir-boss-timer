@@ -18,11 +18,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+// Removida a imagem do Lancer
 const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
     "Skald": "https://framerusercontent.com/images/XJzkQNlvMBB6ZOBgb6DUs5u1Mgk.png?width=1000&height=2280",
-    "Lancer": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png" 
+    "Lancer": "" 
 };
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
@@ -53,7 +54,6 @@ async function sendFullReportToDiscord() {
     const available = allBosses.filter(b => b.respawnTime === 0);
 
     let fullDescription = "**⏳ PRÓXIMOS RESPAWNS**\n";
-    
     if (active.length > 0) {
         active.forEach(b => {
             const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
@@ -65,7 +65,6 @@ async function sendFullReportToDiscord() {
 
     fullDescription += "\n**⚪ SEM INFORMAÇÃO**\n";
     if (available.length > 0) {
-        // Ajustado para exibir em lista com bullet points
         fullDescription += available.map(b => '• ' + b.name + ' (' + b.typeLabel + ' - ' + b.floor + ')').join('\n');
     } else {
         fullDescription += "Nenhum boss disponível.";
@@ -87,12 +86,7 @@ async function sendFullReportToDiscord() {
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
         });
-
-        if (response.ok) {
-            btn.textContent = "✅ Sincronizado!";
-        } else {
-            btn.textContent = "❌ Erro 400";
-        }
+        btn.textContent = response.ok ? "✅ Sincronizado!" : "❌ Erro 400";
     } catch (err) {
         btn.textContent = "❌ Erro Rede";
     } finally {
@@ -102,15 +96,9 @@ async function sendFullReportToDiscord() {
 
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
-    const container = document.getElementById('boss-list-container');
     const btn = document.getElementById('toggle-view-btn');
-    if (isCompactView) {
-        container.classList.add('compact-mode');
-        btn.textContent = "🎴 Alternar para Modo Cards";
-    } else {
-        container.classList.remove('compact-mode');
-        btn.textContent = "📱 Alternar para Modo Compacto";
-    }
+    btn.textContent = isCompactView ? "🎴 Alternar para Modo Cards" : "📱 Alternar para Modo Compacto";
+    render();
 };
 
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
@@ -289,18 +277,22 @@ function render() {
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-                floorHtml += '<div class="boss-card" id="card-' + boss.id + '">' +
-                        '<div class="boss-header">' +
-                            '<img src="' + boss.image + '" class="boss-thumb" alt="' + boss.name + '">' +
-                            '<h4>' + boss.name + '</h4>' +
-                        '</div>' +
-                        '<div class="timer" id="timer-' + boss.id + '">DISPONÍVEL!</div>' +
-                        '<div class="boss-progress-container"><div class="boss-progress-bar" id="bar-' + boss.id + '"></div></div>' +
-                        '<div class="static-times"><p>Morto: <span>' + mStr + '</span></p><p>Nasce: <span>' + nStr + '</span></p></div>' +
-                        '<button class="kill-btn" onclick="killBoss(\'' + boss.id + '\')">Derrotado AGORA</button>' +
-                        '<div class="manual-box"><input type="time" id="manual-input-' + boss.id + '" step="1"><button class="conf-btn" onclick="setManualTime(\'' + boss.id + '\')">OK</button></div>' +
-                        '<button class="reset-btn" onclick="resetBoss(\'' + boss.id + '\')">Resetar</button>' +
-                    '</div>';
+                
+                // Lógica para esconder a imagem se estiver vazia
+                const bossImgHtml = boss.image ? `<img src="${boss.image}" class="boss-thumb" alt="${boss.name}">` : '';
+
+                floorHtml += `<div class="boss-card" id="card-${boss.id}">
+                        <div class="boss-header">
+                            ${bossImgHtml}
+                            <h4>${boss.name}</h4>
+                        </div>
+                        <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
+                        <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
+                        <div class="static-times"><p>M: <span>${mStr}</span></p><p>N: <span>${nStr}</span></p></div>
+                        <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado</button>
+                        <div class="manual-box"><input type="time" id="manual-input-${boss.id}" step="1"><button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button></div>
+                        <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
+                    </div>`;
             });
             floorDiv.innerHTML = floorHtml + '</div>';
             grid.appendChild(floorDiv);
