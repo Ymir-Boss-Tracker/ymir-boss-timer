@@ -86,7 +86,12 @@ header.main-banner {
 }
 .boss-card.alert { border-left-color: #e74c3c; animation: pulse 1s infinite alternate; }
 
-.timer { font-size: 1.5em; font-family: 'Courier New', monospace; font-weight: bold; color: #2ecc71; margin: 10px 0; }
+.timer { 
+    font-size: 1.5em; 
+    font-family: 'Courier New', monospace; 
+    font-weight: bold; 
+    margin: 10px 0; 
+}
 
 .static-times {
     background: rgba(0,0,0,0.3);
