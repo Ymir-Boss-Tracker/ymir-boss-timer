@@ -107,8 +107,9 @@ header.main-banner {
 .sync-discord-button { background: #5865F2; color: white; padding: 12px 24px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; }
 .reset-all-button { background: #ff4d4d; color: white; padding: 12px 24px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; }
 
-/* MODO COMPACTO */
+/* MODO COMPACTO ATUALIZADO */
 .compact-mode .boss-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important; }
 .compact-mode .boss-thumb, .compact-mode .undo-btn, .compact-mode .manual-box { display: none !important; }
-.compact-mode .boss-header { justify-content: center !important; min-height: auto !important; }
+.compact-mode .boss-header { justify-content: center !important; min-height: auto !important; width: 100%; }
+.compact-mode .boss-header h4 { text-align: center !important; width: 100%; } /* Centraliza o nome do boss */
 .compact-mode .timer { font-size: 1.2rem !important; }
