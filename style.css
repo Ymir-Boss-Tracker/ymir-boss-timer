@@ -13,7 +13,7 @@ header.main-banner {
     background-image: url('https://assets.repress.co.kr/photos/a36258edead972038e83cc022955d0fd/original.png');
     background-size: cover;
     background-position: center 15%;
-    min-height: 300px;
+    min-height: 250px;
     display: flex;
     align-items: center; justify-content: center;
     border-bottom: 3px solid #d4af37;
@@ -26,41 +26,48 @@ header.main-banner {
     display: flex; align-items: center; justify-content: center;
 }
 
-.view-toggle-container { margin: 20px auto; max-width: 1400px; text-align: right; padding-right: 20px; }
-.toggle-btn { background: #34495e; color: white; padding: 10px 20px; border: 1px solid #d4af37; border-radius: 20px; cursor: pointer; }
+#auth-controls { margin-top: 15px; }
+#login-btn { background: #4285F4; color: white; padding: 12px 24px; font-size: 1rem; border-radius: 4px; }
+#user-name { margin-right: 15px; font-weight: bold; color: #d4af37; }
+.logout-link { background: transparent; color: #ff4d4d; text-decoration: underline; font-size: 0.9rem; cursor: pointer; }
 
-.type-section { background: rgba(45, 52, 54, 0.3); margin: 20px; padding: 15px; border-radius: 12px; border: 1px solid #3d3d3d; }
-.floors-container { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
-.floor-section { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; }
-.floor-section h3 { color: #f39c12; text-align: left; padding-left: 10px; border-bottom: 1px solid #30363d; margin-top: 0; }
+.view-toggle-container { margin: 20px 0; }
+.toggle-btn { background: #2c3e50; color: white; padding: 10px 20px; border: 1px solid #d4af37; border-radius: 20px; }
 
-.boss-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.type-section { padding: 20px; max-width: 1400px; margin: 0 auto; }
+.type-section h2 { border-bottom: 2px solid #d4af37; padding-bottom: 10px; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; }
+
+.floors-container { display: flex; flex-direction: column; gap: 30px; }
+.floor-section h3 { background: #1a1a1a; padding: 10px; border-left: 5px solid #d4af37; text-align: left; margin-bottom: 15px; }
+
+.boss-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 20px; 
+}
 
 .boss-card { 
-    background: linear-gradient(145deg, #252525, #121212);
-    padding: 15px; border-radius: 6px; border-left: 4px solid #d4af37;
+    background: #16161a; 
+    border: 1px solid #333; 
+    border-radius: 8px; 
+    padding: 15px; 
+    position: relative; 
+    transition: 0.3s;
 }
+.boss-card.alert { border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); animation: pulse 1.5s infinite; }
 
-.boss-header { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: 10px; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
 
-.boss-thumb { 
-    width: 50px; 
-    height: 50px; 
-    border-radius: 50%; 
-    border: 2px solid #d4af37; 
-    object-fit: cover; 
-    object-position: top center; 
-    background: #000; 
-}
+.boss-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+.boss-thumb { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; }
+.boss-header h4 { margin: 0; font-size: 1.2rem; color: #fff; }
 
-.boss-card.alert { border-left-color: #e74c3c; animation: pulse 1s infinite alternate; }
+.timer { font-size: 1.8rem; font-weight: bold; margin: 10px 0; font-family: 'Courier New', Courier, monospace; }
 
-.timer { font-size: 1.5em; font-family: 'Courier New', monospace; font-weight: bold; margin: 10px 0; }
+.boss-progress-container { background: #000; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 15px; }
+.boss-progress-bar { height: 100%; width: 0%; transition: width 1s linear; }
 
-.boss-progress-container { width: 100%; height: 8px; background: #333; border-radius: 4px; margin-bottom: 15px; overflow: hidden; border: 1px solid #444; }
-.boss-progress-bar { height: 100%; width: 0%; background: #2ecc71; transition: width 1s linear, background-color 0.3s; }
-
-.static-times { background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px; margin-bottom: 10px; font-size: 0.85rem; }
+.static-times { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 15px; }
 .static-times p { margin: 2px 0; color: #f39c12; }
 .static-times span { color: #e0e0e0; }
 
@@ -71,23 +78,17 @@ button { cursor: pointer; border-radius: 4px; border: none; font-weight: bold; t
 .conf-btn { width: 30%; background: #2ecc71; color: white; }
 .reset-btn { background: #333; color: #888; width: 100%; padding: 6px; font-size: 0.8rem; }
 
-.export-group { display: flex; gap: 10px; width: 100%; }
-.export-button { background: #f1c40f; color: #000; flex: 1; padding: 15px; font-size: 1rem; border-radius: 4px; }
+.global-actions { margin-top: 50px; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 0 20px; }
+.export-group { display: flex; gap: 10px; width: 100%; max-width: 600px; }
+.export-button { background: #f1c40f; color: #000; flex: 1; padding: 15px; font-size: 1rem; }
+.sync-discord-button { background: #5865F2; color: #fff; flex: 1; padding: 15px; font-size: 1rem; }
+.reset-all-button { background: #ff4d4d; color: white; width: 100%; max-width: 600px; padding: 15px; }
 
-.sync-discord-button { 
-    background: #5865F2; 
-    color: #fff; 
-    flex: 1; 
-    padding: 15px; 
-    font-size: 1rem; 
-    border-radius: 4px; 
-    font-weight: bold;
-}
-.sync-discord-button:hover { background: #4752c4; }
-
-.global-actions { margin: 40px auto; max-width: 500px; display: flex; flex-direction: column; gap: 10px; padding: 0 20px; }
-.reset-all-button { background: #c0392b; color: #fff; padding: 12px; border-radius: 4px; }
-
-@keyframes pulse { from { box-shadow: 0 0 4px #e74c3c; } to { box-shadow: 0 0 12px #e74c3c; } }
-@media (max-width: 1100px) { .boss-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 650px) { .boss-grid { grid-template-columns: 1fr; } }
+/* REGRAS DO MODO COMPACTO */
+.compact-mode .boss-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.compact-mode .boss-thumb { display: none; }
+.compact-mode .boss-header { justify-content: center; margin-bottom: 5px; }
+.compact-mode .timer { font-size: 1.3rem; margin: 5px 0; }
+.compact-mode .static-times { flex-direction: column; align-items: center; gap: 2px; font-size: 0.7rem; }
+.compact-mode .kill-btn { padding: 6px; font-size: 0.8rem; }
+.compact-mode .manual-box { display: none; } /* Oculta entrada manual no modo compacto para economizar espaço */
