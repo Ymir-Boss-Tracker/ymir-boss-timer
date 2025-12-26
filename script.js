@@ -2,8 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1453986988125458524/dFMLs1p0MGfMB9asjuYErVLdz8r0mcfnSJT1OT_weNbDy9Oux9mm8-3cZwr9pCtRiluI";
-
 const firebaseConfig = {
   apiKey: "AIzaSyCjWmsnTIA8hJDw-rJC5iJhPhwbK-U1_YU",
   authDomain: "ymir-boss-tracker.firebaseapp.com",
@@ -18,13 +16,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-const BOSS_IMAGES = {
-    "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
-    "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
-    "Skald": "https://framerusercontent.com/images/XJzkQNlvMBB6ZOBgb6DUs5u1Mgk.png?width=1000&height=2280",
-    "Lancer": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png" 
-};
-
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const FIVE_MINUTES_MS = 5 * 1000 * 60;
@@ -33,74 +24,7 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-async function sendFullReportToDiscord() {
-    if (!DISCORD_WEBHOOK_URL) return;
-    const btn = document.getElementById('sync-discord-btn');
-    const originalText = btn.textContent;
-    btn.textContent = "⌛ Enviando...";
-    btn.disabled = true;
-
-    let allBosses = [];
-    ['Comum', 'Universal'].forEach(type => {
-        for (const f in BOSS_DATA[type].floors) {
-            BOSS_DATA[type].floors[f].bosses.forEach(b => { 
-                allBosses.push({ ...b, typeLabel: type }); 
-            });
-        }
-    });
-
-    const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
-    const available = allBosses.filter(b => b.respawnTime === 0);
-
-    // CONSTRUÇÃO DO TEXTO ÚNICO (Usando Description em vez de Fields)
-    let fullDescription = "**⏳ PRÓXIMOS RESPAWNS**\n";
-    
-    if (active.length > 0) {
-        active.forEach(b => {
-            const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
-            fullDescription += '• **' + b.name + '** (' + b.typeLabel + ' - ' + b.floor + ') -> **' + timeStr + '**\n';
-        });
-    } else {
-        fullDescription += "Nenhum no momento.\n";
-    }
-
-    fullDescription += "\n**⚪ SEM INFORMAÇÃO**\n";
-    if (available.length > 0) {
-        fullDescription += available.map(b => b.name + ' (' + b.typeLabel + ' - ' + b.floor + ')').join(', ');
-    } else {
-        fullDescription += "Nenhum boss disponível.";
-    }
-
-    const payload = {
-        embeds: [{
-            title: "⚔️ STATUS DOS BOSSES - LEGEND OF YMIR",
-            description: fullDescription.substring(0, 4000), // Limite maior para o corpo da mensagem
-            color: 5814783,
-            footer: { text: 'Enviado por: ' + (currentUser ? currentUser.displayName : 'Sistema') },
-            timestamp: new Date().toISOString()
-        }]
-    };
-
-    try {
-        const response = await fetch(DISCORD_WEBHOOK_URL, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(payload) 
-        });
-
-        if (response.ok) {
-            btn.textContent = "✅ Sincronizado!";
-        } else {
-            btn.textContent = "❌ Erro 400";
-        }
-    } catch (err) {
-        btn.textContent = "❌ Erro Rede";
-    } finally {
-        setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000);
-    }
-}
-
-// RESTANTE DAS FUNÇÕES (IGUAL AO ORIGINAL)
+// Alternar Visão
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     const container = document.getElementById('boss-list-container');
@@ -117,7 +41,7 @@ document.getElementById('toggle-view-btn').onclick = () => {
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('logout-btn').onclick = () => signOut(auth);
 document.getElementById('export-btn').onclick = () => exportReport();
-document.getElementById('sync-discord-btn').onclick = () => sendFullReportToDiscord();
+document.getElementById('export-img-btn').onclick = () => exportImage();
 document.getElementById('reset-all-btn').onclick = () => resetAllTimers();
 
 onAuthStateChanged(auth, (user) => {
@@ -125,7 +49,7 @@ onAuthStateChanged(auth, (user) => {
         currentUser = user;
         document.getElementById('login-btn').style.display = 'none';
         document.getElementById('user-info').style.display = 'block';
-        document.getElementById('user-name').textContent = 'Olá, ' + user.displayName;
+        document.getElementById('user-name').textContent = `Olá, ${user.displayName}`;
         document.getElementById('app-content').style.display = 'block';
         loadUserData();
     } else {
@@ -139,13 +63,12 @@ onAuthStateChanged(auth, (user) => {
 function initializeBossData() {
     ['Comum', 'Universal'].forEach(type => {
         for (let p = 1; p <= 4; p++) {
-            const floorKey = 'Piso ' + p;
+            const floorKey = `Piso ${p}`;
             BOSS_DATA[type].floors[floorKey] = { name: floorKey, bosses: [] };
             BOSS_NAMES.forEach(bossName => {
                 BOSS_DATA[type].floors[floorKey].bosses.push({
-                    id: type.toLowerCase() + '_' + p + '_' + bossName.toLowerCase(),
-                    name: bossName, respawnTime: 0, alerted: false, floor: floorKey, type: type,
-                    image: BOSS_IMAGES[bossName]
+                    id: `${type.toLowerCase()}_${p}_${bossName.toLowerCase()}`,
+                    name: bossName, respawnTime: 0, alerted: false, floor: floorKey, type: type
                 });
             });
         }
@@ -197,7 +120,7 @@ window.killBoss = (id) => {
 };
 
 window.setManualTime = (id) => {
-    const val = document.getElementById('manual-input-' + id).value;
+    const val = document.getElementById(`manual-input-${id}`).value;
     if (!val) return alert("Selecione o horário!");
     const parts = val.split(':').map(Number);
     const d = new Date(); d.setHours(parts[0], parts[1], parts[2] || 0, 0);
@@ -232,9 +155,9 @@ function updateBossTimers() {
     ['Comum', 'Universal'].forEach(type => {
         for (const f in BOSS_DATA[type].floors) {
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
-                const timerTxt = document.getElementById('timer-' + boss.id);
-                const card = document.getElementById('card-' + boss.id);
-                const bar = document.getElementById('bar-' + boss.id);
+                const timerTxt = document.getElementById(`timer-${boss.id}`);
+                const card = document.getElementById(`card-${boss.id}`);
+                const bar = document.getElementById(`bar-${boss.id}`);
                 if (!timerTxt || !bar) return;
 
                 if (boss.respawnTime === 0 || boss.respawnTime <= now) {
@@ -248,7 +171,7 @@ function updateBossTimers() {
                     const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                     const diff = boss.respawnTime - now;
                     const percent = (diff / duration) * 100;
-                    bar.style.width = percent + '%';
+                    bar.style.width = `${percent}%`;
 
                     if (diff <= FIVE_MINUTES_MS) {
                         timerTxt.style.color = "#ff4d4d";
@@ -266,7 +189,7 @@ function updateBossTimers() {
                     const h = Math.floor(diff / 3600000);
                     const m = Math.floor((diff % 3600000) / 60000);
                     const s = Math.floor((diff % 60000) / 1000);
-                    timerTxt.textContent = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+                    timerTxt.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
                 }
             });
         }
@@ -279,31 +202,29 @@ function render() {
     ['Comum', 'Universal'].forEach(type => {
         const section = document.createElement('section');
         section.className = 'type-section';
-        section.innerHTML = '<h2>' + BOSS_DATA[type].name + '</h2>';
+        section.innerHTML = `<h2>${BOSS_DATA[type].name}</h2>`;
         const grid = document.createElement('div');
         grid.className = 'floors-container';
         for (const f in BOSS_DATA[type].floors) {
             const floorDiv = document.createElement('div');
             floorDiv.className = 'floor-section';
-            let floorHtml = '<h3>' + f + '</h3><div class="boss-grid">';
+            let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-                floorHtml += '<div class="boss-card" id="card-' + boss.id + '">' +
-                        '<div class="boss-header">' +
-                            '<img src="' + boss.image + '" class="boss-thumb" alt="' + boss.name + '">' +
-                            '<h4>' + boss.name + '</h4>' +
-                        '</div>' +
-                        '<div class="timer" id="timer-' + boss.id + '">DISPONÍVEL!</div>' +
-                        '<div class="boss-progress-container"><div class="boss-progress-bar" id="bar-' + boss.id + '"></div></div>' +
-                        '<div class="static-times"><p>Morto: <span>' + mStr + '</span></p><p>Nasce: <span>' + nStr + '</span></p></div>' +
-                        '<button class="kill-btn" onclick="killBoss(\'' + boss.id + '\')">Derrotado AGORA</button>' +
-                        '<div class="manual-box"><input type="time" id="manual-input-' + boss.id + '" step="1"><button class="conf-btn" onclick="setManualTime(\'' + boss.id + '\')">OK</button></div>' +
-                        '<button class="reset-btn" onclick="resetBoss(\'' + boss.id + '\')">Resetar</button>' +
-                    '</div>';
+                floorHtml += `
+                    <div class="boss-card" id="card-${boss.id}">
+                        <h4>${boss.name}</h4>
+                        <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
+                        <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
+                        <div class="static-times"><p>Morto: <span>${mStr}</span></p><p>Nasce: <span>${nStr}</span></p></div>
+                        <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
+                        <div class="manual-box"><input type="time" id="manual-input-${boss.id}" step="1"><button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button></div>
+                        <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
+                    </div>`;
             });
-            floorDiv.innerHTML = floorHtml + '</div>';
+            floorDiv.innerHTML = floorHtml + `</div>`;
             grid.appendChild(floorDiv);
         }
         section.appendChild(grid);
@@ -312,29 +233,49 @@ function render() {
     if (isCompactView) container.classList.add('compact-mode');
 }
 
+function exportImage() {
+    const btnImg = document.getElementById('export-img-btn');
+    const originalText = btnImg.textContent;
+
+    document.body.classList.add('printing');
+    btnImg.textContent = "📸 Gerando...";
+
+    setTimeout(() => {
+        html2canvas(document.querySelector("#app-content"), {
+            backgroundColor: "#0a0a0c",
+            scale: 2,
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const dataAtual = new Date().toLocaleDateString().replace(/\//g, '-');
+            link.download = `Status_Boss_Ymir_${dataAtual}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+
+            document.body.classList.remove('printing');
+            btnImg.textContent = originalText;
+        });
+    }, 500);
+}
+
 function exportReport() {
-    let allBosses = [];
-    ['Comum', 'Universal'].forEach(type => {
-        for (const f in BOSS_DATA[type].floors) {
-            BOSS_DATA[type].floors[f].bosses.forEach(b => { allBosses.push({ ...b, typeLabel: type }); });
-        }
-    });
-
-    const active = allBosses.filter(b => b.respawnTime > 0).sort((a, b) => a.respawnTime - b.respawnTime);
-    const available = allBosses.filter(b => b.respawnTime === 0);
-
-    let text = "⚔️ RELATÓRIO DE BOSSES - YMIR ⚔️\n\n";
-    text += "⏳ PRÓXIMOS RESPAWNS:\n";
+    const agora = new Date();
+    let all = [];
+    ['Comum', 'Universal'].forEach(t => { for(const f in BOSS_DATA[t].floors) BOSS_DATA[t].floors[f].bosses.forEach(b => all.push({...b})); });
+    let active = all.filter(b => b.respawnTime > 0).sort((a,b) => a.respawnTime - b.respawnTime);
+    let text = `=== RELATÓRIO CRONOLÓGICO YMIR (${agora.toLocaleDateString()} ${agora.toLocaleTimeString()}) ===\n\n`;
+    text += `>>> PRÓXIMOS RESPAWNS <<<\n\n`;
     active.forEach(b => {
-        text += b.typeLabel + " - " + b.floor + " - " + b.name + ": " + new Date(b.respawnTime).toLocaleTimeString('pt-BR') + "\n";
+        const dur = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+        const n = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
+        const m = new Date(b.respawnTime - dur).toLocaleTimeString('pt-BR');
+        text += `${(b.type.substring(0,3) + " " + b.floor + " " + b.name).padEnd(25)} | M: ${m} | NASCE: ${n}\n\n`;
     });
-    text += "\n⚪ SEM INFORMAÇÃO:\n";
-    available.forEach(b => { text += b.typeLabel + " - " + b.floor + " - " + b.name + "\n"; });
-
     const blob = new Blob([text], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'Relatorio_Ymir.txt';
+    link.download = `Relatorio_Ymir.txt`;
     link.click();
 }
 
