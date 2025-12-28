@@ -33,12 +33,15 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// Função de alternância de modo
-document.getElementById('toggle-view-btn').onclick = () => {
-    isCompactView = !isCompactView;
-    document.getElementById('toggle-view-btn').textContent = isCompactView ? "🎴 Modo Cards" : "📱 Modo Compacto";
-    render();
-};
+// Lógica do botão de alternância
+const toggleBtn = document.getElementById('toggle-view-btn');
+if(toggleBtn) {
+    toggleBtn.onclick = () => {
+        isCompactView = !isCompactView;
+        toggleBtn.textContent = isCompactView ? "🎴 Modo Cards" : "📱 Modo Compacto";
+        render();
+    };
+}
 
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('logout-btn').onclick = () => signOut(auth);
@@ -260,7 +263,7 @@ function render() {
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
                 
-                // Só renderiza a div da imagem se NÃO estiver no modo compacto
+                // No Modo Compacto (isCompactView), a imagem não é gerada
                 const bossImgHtml = !isCompactView 
                     ? `<div class="thumb-container"><img src="${boss.image}" class="boss-thumb" alt="${boss.name}"></div>` 
                     : "";
