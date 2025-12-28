@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ymir Boss Timer Tracker</title>
+    <title>Ymir Boss Tracker Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header class="main-banner">
         <div class="banner-overlay">
             <div class="banner-content">
-                <h1>⚔️ Boss Respawn Tracker - Legend of Ymir 🛡️</h1>
+                <h1>⚔️ Legend of Ymir Tracker 🛡️</h1>
                 <div id="auth-controls">
-                    <button id="login-btn">🔓 Logar com Google</button>
+                    <button id="login-btn">🔓 Entrar com Google</button>
                     <div id="user-info" style="display:none">
                         <span id="user-name"></span>
                         <button class="logout-link" id="logout-btn">❌ Sair</button>
@@ -24,11 +24,11 @@
 
     <div id="app-content" style="display:none">
         <div class="view-toggle-container">
-            <button id="toggle-view-btn" class="toggle-btn">📱 Alternar para Modo Compacto</button>
+            <button id="toggle-view-btn" class="toggle-btn">📱 Mudar Visualização</button>
         </div>
 
         <div id="next-boss-display" class="next-boss-highlight">
-            <span>Carregando próximo boss...</span>
+            <span>Aguardando dados...</span>
         </div>
 
         <main id="boss-list-container"></main>
@@ -39,16 +39,11 @@
                 <button class="sync-discord-button" id="sync-comum-btn" style="background: #2c3e50;">🔵 Sync Comum</button>
                 <button class="sync-discord-button" id="sync-universal-btn" style="background: #5865F2;">🟣 Sync Universal</button>
             </div>
-            <button id="reset-all-btn" class="reset-all-button">⚠️ Resetar TODOS os Timers</button>
+            <button id="reset-all-btn" class="reset-all-button">⚠️ Resetar Tudo</button>
         </section>
-
-        <footer>
-            <p>Alerta visual e SONORO 5 min antes. Comum (8h) e Universal (2h).</p>
-        </footer>
     </div>
 
     <audio id="alert-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
-    
     <script type="module" src="script.js"></script>
 </body>
 </html>
