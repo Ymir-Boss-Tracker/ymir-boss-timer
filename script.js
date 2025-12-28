@@ -22,7 +22,7 @@ const BOSS_IMAGES = {
     "Berserker": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674395545-53214fcd-e6aa-41e5-b91d-ba44ee3bd3f3.png",
     "Mage": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674409406-c5b70062-7ad2-4958-9a5c-3d2b2a2edcb6.png",
     "Skald": "https://framerusercontent.com/images/XJzkQNlvMBB6ZOBgb6DUs5u1Mgk.png?width=1000&height=2280",
-    "Lancer": "https://gcdn-dev.wemade.games/dev/lygl/official/api/upload/helpInquiry/1764674381736-231a4773-4f9e-4e8c-8f91-884814a27572.png" // Adicionado placeholder
+    "Lancer": "https://placehold.co/400x400/000000/000000.png" // Imagem preta para o Lancer
 };
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
@@ -33,7 +33,6 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// Listeners
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     document.getElementById('toggle-view-btn').textContent = isCompactView ? "🎴 Modo Cards" : "📱 Modo Compacto";
@@ -259,9 +258,7 @@ function render() {
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-                const bossImgHtml = boss.image 
-                    ? `<img src="${boss.image}" class="boss-thumb" alt="${boss.name}">` 
-                    : `<div class="boss-thumb" style="border-style: dashed; opacity: 0.2; display: flex; align-items: center; justify-content: center;">⚔️</div>`;
+                const bossImgHtml = `<img src="${boss.image}" class="boss-thumb" alt="${boss.name}">`;
 
                 floorHtml += `<div class="boss-card" id="card-${boss.id}">
                         <div class="boss-header">
