@@ -33,6 +33,7 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
+// Função de alternância de modo
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     document.getElementById('toggle-view-btn').textContent = isCompactView ? "🎴 Modo Cards" : "📱 Modo Compacto";
@@ -241,12 +242,12 @@ function updateBossTimers() {
 function render() {
     const container = document.getElementById('boss-list-container');
     container.innerHTML = '';
-    if (isCompactView) container.classList.add('compact-mode');
-    else container.classList.remove('compact-mode');
+    
+    const viewClass = isCompactView ? 'compact-mode' : '';
 
     ['Comum', 'Universal'].forEach(type => {
         const section = document.createElement('section');
-        section.className = 'type-section';
+        section.className = `type-section ${viewClass}`;
         section.innerHTML = `<h2>${BOSS_DATA[type].name}</h2>`;
         const grid = document.createElement('div');
         grid.className = 'floors-container';
@@ -258,11 +259,15 @@ function render() {
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
                 const nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-                const bossImgHtml = `<img src="${boss.image}" class="boss-thumb" alt="${boss.name}">`;
+                
+                // Só renderiza a div da imagem se NÃO estiver no modo compacto
+                const bossImgHtml = !isCompactView 
+                    ? `<div class="thumb-container"><img src="${boss.image}" class="boss-thumb" alt="${boss.name}"></div>` 
+                    : "";
 
                 floorHtml += `<div class="boss-card" id="card-${boss.id}">
                         <div class="boss-header">
-                            <div class="thumb-container">${bossImgHtml}</div>
+                            ${bossImgHtml}
                             <h4>${boss.name}</h4>
                         </div>
                         <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
