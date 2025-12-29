@@ -34,7 +34,6 @@ let BOSS_DATA = { 'Comum': { name: 'Folkvangr Comum', floors: {} }, 'Universal':
 let currentUser = null;
 let isCompactView = false;
 
-// Helpers globais
 window.scrollToBoss = (id) => {
     const element = document.getElementById('card-' + id);
     if (element) {
@@ -47,7 +46,7 @@ window.scrollToBoss = (id) => {
 document.getElementById('toggle-view-btn').onclick = () => {
     isCompactView = !isCompactView;
     document.getElementById('toggle-view-btn').textContent = isCompactView ? "🎴 Modo Cards" : "📱 Modo Compacto";
-    render(); // Renderiza apenas na troca de modo
+    render();
 };
 
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
@@ -125,7 +124,6 @@ function findBossById(id) {
     }
 }
 
-// OTIMIZAÇÃO: Atualização seletiva do DOM
 function updateBossTimers() {
     const now = Date.now();
     let nextBoss = null;
@@ -142,20 +140,15 @@ function updateBossTimers() {
 
                 if (!timerTxt) return;
 
-                // Atualiza horários estáticos se necessário
                 const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+                
                 if(boss.respawnTime > 0) {
                     mortoTxt.textContent = new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR');
                     nasceTxt.textContent = new Date(boss.respawnTime).toLocaleTimeString('pt-BR');
-                    
                     const diff = boss.respawnTime - now;
-                    if(diff > 0 && diff < minDiff) {
-                        minDiff = diff;
-                        nextBoss = boss;
-                    }
+                    if(diff > 0 && diff < minDiff) { minDiff = diff; nextBoss = boss; }
                 } else {
-                    mortoTxt.textContent = "--:--";
-                    nasceTxt.textContent = "--:--";
+                    mortoTxt.textContent = "--:--"; nasceTxt.textContent = "--:--";
                 }
 
                 if (boss.respawnTime === 0 || boss.respawnTime <= now) {
@@ -174,12 +167,10 @@ function updateBossTimers() {
                         card.classList.add('fire-alert');
                         card.classList.remove('alert');
                         timerTxt.style.color = "#ff8c00";
-                        bar.style.backgroundColor = "#ff4500";
                     } else if (diff <= FIVE_MINUTES_MS) {
                         card.classList.add('alert');
                         card.classList.remove('fire-alert');
                         timerTxt.style.color = "#ff4d4d";
-                        bar.style.backgroundColor = "#ff4d4d";
                         if (!boss.alerted) {
                             document.getElementById('alert-sound').play().catch(() => {});
                             boss.alerted = true; save();
@@ -187,7 +178,6 @@ function updateBossTimers() {
                     } else {
                         card.classList.remove('alert', 'fire-alert');
                         timerTxt.style.color = "#f1c40f";
-                        bar.style.backgroundColor = "#f1c40f";
                         boss.alerted = false;
                     }
 
@@ -200,22 +190,18 @@ function updateBossTimers() {
         }
     });
 
-    updateHighlightUI(nextBoss, minDiff);
-}
-
-function updateHighlightUI(next, diff) {
-    const div = document.getElementById('next-boss-display');
-    if (next) {
-        const h = Math.floor(diff / 3600000).toString().padStart(2,'0');
-        const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0');
-        const s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
-        div.setAttribute('onclick', `scrollToBoss('${next.id}')`);
-        div.innerHTML = `<div class="next-boss-info">
-            <span>🎯 PRÓXIMO: <strong>${next.name}</strong> <small>(${next.type} - ${next.floor})</small></span>
+    const highlightDiv = document.getElementById('next-boss-display');
+    if (nextBoss) {
+        const h = Math.floor(minDiff / 3600000).toString().padStart(2,'0');
+        const m = Math.floor((minDiff % 3600000) / 60000).toString().padStart(2,'0');
+        const s = Math.floor((minDiff % 60000) / 1000).toString().padStart(2,'0');
+        highlightDiv.setAttribute('onclick', `scrollToBoss('${nextBoss.id}')`);
+        highlightDiv.innerHTML = `<div class="next-boss-info">
+            <span>🎯 PRÓXIMO: <strong>${nextBoss.name}</strong> <small>(${nextBoss.type} - ${nextBoss.floor})</small></span>
             <span class="next-boss-timer">${h}:${m}:${s}</span>
         </div>`;
     } else {
-        div.innerHTML = "<span>⚔️ Nenhum boss em contagem.</span>";
+        highlightDiv.innerHTML = "<span>⚔️ Nenhum boss em contagem.</span>";
     }
 }
 
@@ -304,8 +290,8 @@ function render() {
                             <button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button>
                         </div>
                         <div class="action-footer">
-                            <button class="undo-btn" onclick="undoKill('${boss.id}')">↩</button>
-                            <button class="reset-btn" onclick="resetBoss('${boss.id}')">Reset</button>
+                            <button class="undo-btn" onclick="undoKill('${boss.id}')">↩ Desfazer</button>
+                            <button class="reset-btn" onclick="resetBoss('${boss.id}')">Resetar</button>
                         </div>
                     </div>`;
             });
