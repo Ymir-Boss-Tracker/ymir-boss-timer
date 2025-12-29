@@ -33,13 +33,16 @@
 
         <main id="boss-list-container"></main>
 
-        <section class="config-section">
-            <div class="config-panel">
-                <h3>⚙️ Configuração do Discord</h3>
-                <p><small>As notificações de Sync serão enviadas para o seu Webhook pessoal:</small></p>
-                <div class="webhook-input-group">
-                    <input type="password" id="discord-webhook-input" placeholder="Cole o Webhook do seu canal aqui">
-                    <button id="save-config-btn" class="conf-btn">Salvar Webhook</button>
+        <section class="discord-config">
+            <div class="config-card">
+                <div class="config-header">
+                    <span class="icon">⚙️</span>
+                    <h3>CONFIGURAÇÃO DO DISCORD</h3>
+                </div>
+                <p>As notificações de Sync serão enviadas para o seu Webhook pessoal:</p>
+                <div class="input-group">
+                    <input type="text" id="webhook-url-input" placeholder="Cole o Webhook do seu canal aqui">
+                    <button id="save-webhook-btn" class="save-btn">Salvar Webhook</button>
                 </div>
             </div>
         </section>
