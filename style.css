@@ -140,10 +140,10 @@ header.main-banner {
 
 .boss-thumb { 
     width: 65px; height: 65px; 
-    border-radius: 50%; /* Torna a miniatura redonda para focar no rosto */
+    border-radius: 50%; 
     border: 2px solid #d4af37; 
     object-fit: cover; 
-    object-position: center 20%; /* Ajuste para focar no topo/rosto da imagem */
+    object-position: center 20%; 
 }
 
 .timer { font-size: 1.6rem; font-weight: bold; color: #f1c40f; margin: 10px 0; text-align: center;}
@@ -175,61 +175,13 @@ header.main-banner {
 .sync-discord-button { color: #fff; padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 10px; }
 .reset-all-button { background: #ff4d4d; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 15px; }
 
-/* ESTILOS DO WEBHOOK */
-.discord-config {
-    margin: 40px auto;
-    max-width: 850px;
-    padding: 0 20px;
-}
-
-.config-card {
-    background: #111;
-    border: 1px solid #d4af3766;
-    border-radius: 12px;
-    padding: 25px;
-    text-align: left;
-}
-
-.config-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
+.discord-config { margin: 40px auto; max-width: 850px; padding: 0 20px; }
+.config-card { background: #111; border: 1px solid #d4af3766; border-radius: 12px; padding: 25px; text-align: left; }
+.config-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
 .config-header .icon { font-size: 1.4rem; }
 .config-header h3 { margin: 0; color: #fff; letter-spacing: 1px; }
-
-.config-card p {
-    font-size: 0.95rem;
-    color: #bbb;
-    margin-bottom: 20px;
-}
-
-.input-group {
-    display: flex;
-    gap: 10px;
-}
-
-.input-group input {
-    flex: 1;
-    background: #000;
-    border: 1px solid #333;
-    border-radius: 6px;
-    padding: 12px 15px;
-    color: #fff;
-    font-family: 'Montserrat', sans-serif;
-}
-
-.save-btn {
-    background: #2ecc71;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 0 25px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
+.config-card p { font-size: 0.95rem; color: #bbb; margin-bottom: 20px; }
+.input-group { display: flex; gap: 10px; }
+.input-group input { flex: 1; background: #000; border: 1px solid #333; border-radius: 6px; padding: 12px 15px; color: #fff; font-family: 'Montserrat', sans-serif; }
+.save-btn { background: #2ecc71; color: white; border: none; border-radius: 6px; padding: 0 25px; font-weight: bold; cursor: pointer; transition: 0.3s; }
 .save-btn:hover { background: #27ae60; }
