@@ -141,7 +141,6 @@ function findBossById(id) {
     }
 }
 
-// Função para atualizar apenas o texto de horários do card sem renderizar tudo
 function updateSingleCardDOM(id) {
     const b = findBossById(id);
     const card = document.getElementById('card-' + id);
@@ -211,8 +210,10 @@ window.killBoss = (id) => {
 };
 
 window.setManualTime = (id) => {
-    const val = document.getElementById('manual-input-' + id).value;
+    const inputEl = document.getElementById('manual-input-' + id);
+    const val = inputEl.value;
     if (!val) return alert("Selecione o horário!");
+    
     const b = findBossById(id);
     b.lastRespawnTime = b.respawnTime;
     const parts = val.split(':').map(Number);
@@ -221,6 +222,10 @@ window.setManualTime = (id) => {
     const duration = id.includes('universal') ? TWO_HOURS_MS : EIGHT_HOURS_MS;
     b.respawnTime = d.getTime() + duration;
     b.alerted = false;
+    
+    // CORREÇÃO: Limpar o input após o registro
+    inputEl.value = "";
+    
     save(); 
     updateSingleCardDOM(id);
 };
