@@ -50,11 +50,10 @@ header.main-banner {
     border-left: 4px solid #d4af37; margin-bottom: 10px;
 }
 
-/* AJUSTE DE PROPORÇÃO DOS CARDS */
 .boss-card { 
     background: #111; border: 1px solid #2a2a2a; border-radius: 10px; 
-    padding: 15px; width: 280px; min-width: 280px; /* Largura fixa */
-    min-height: 520px; /* Altura mínima fixa para manter proporção */
+    padding: 15px; width: 280px; min-width: 280px; 
+    min-height: 520px; 
     display: flex; flex-direction: column; justify-content: space-between;
     transition: 0.3s; text-align: left; position: relative;
 }
@@ -81,7 +80,7 @@ header.main-banner {
     100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
 }
 
-.boss-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; height: 70px; } /* Altura fixa para o header */
+.boss-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; height: 70px; }
 .boss-header h4 { margin: 0; font-size: 0.95rem; }
 .boss-thumb { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; object-position: center 20%; flex-shrink: 0; }
 
@@ -109,7 +108,6 @@ header.main-banner {
 .action-footer { display: flex; gap: 5px; }
 .undo-btn, .reset-btn { flex: 1; background: #333; color: #ccc; border: none; padding: 6px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; }
 
-/* AJUSTE MODO COMPACTO PARA FICAREM PROPORCIONAIS */
 .type-section.compact-mode .boss-card { 
     width: 200px; min-width: 200px; min-height: 180px; 
     padding: 10px; text-align: center; 
