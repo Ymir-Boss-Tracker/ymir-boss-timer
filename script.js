@@ -61,6 +61,8 @@ document.getElementById('logout-btn').onclick = () => signOut(auth);
 document.getElementById('export-btn').onclick = () => exportReport();
 document.getElementById('sync-comum-btn').onclick = () => sendReportToDiscord('Comum');
 document.getElementById('sync-universal-btn').onclick = () => sendReportToDiscord('Universal');
+document.getElementById('sync-myrk1-btn').onclick = () => sendReportToDiscord('Myrkheimr1');
+document.getElementById('sync-myrk2-btn').onclick = () => sendReportToDiscord('Myrkheimr2');
 document.getElementById('reset-all-btn').onclick = () => resetAllTimers();
 
 document.getElementById('save-webhook-btn').onclick = async () => {
@@ -281,16 +283,48 @@ function render() {
 
 async function sendReportToDiscord(filterType) {
     if (!userWebhookUrl) return alert("Configure o Webhook!");
-    const btnId = filterType === 'Comum' ? 'sync-comum-btn' : 'sync-universal-btn', btn = document.getElementById(btnId), originalText = btn.textContent;
+    
+    let btnId;
+    switch(filterType) {
+        case 'Comum': btnId = 'sync-comum-btn'; break;
+        case 'Universal': btnId = 'sync-universal-btn'; break;
+        case 'Myrkheimr1': btnId = 'sync-myrk1-btn'; break;
+        case 'Myrkheimr2': btnId = 'sync-myrk2-btn'; break;
+    }
+    
+    const btn = document.getElementById(btnId), originalText = btn.textContent;
     btn.textContent = "⌛..."; btn.disabled = true;
-    let desc = `**⏳ PRÓXIMOS RESPAWNS (${filterType.toUpperCase()})**\n`;
+    
+    let desc = `**⏳ PRÓXIMOS RESPAWNS (${BOSS_DATA[filterType].name.toUpperCase()})**\n`;
+    let found = false;
+
     for (const f in BOSS_DATA[filterType].floors) {
         BOSS_DATA[filterType].floors[f].bosses.forEach(b => { 
-            if (b.respawnTime > 0) desc += `• **${b.name.replace('<br>', ' ')}** (${b.floor}) -> **${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}**${b.notSure ? " ⚠️" : ""}\n`;
+            if (b.respawnTime > 0) {
+                found = true;
+                const cleanName = b.name.replace('<br>', ' ');
+                const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
+                const uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
+                desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
+            }
         });
     }
+
+    if (!found) desc += "_Nenhum boss em contagem no momento._";
+
     try {
-        const response = await fetch(userWebhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [{ title: `⚔️ STATUS ${filterType}`, description: desc, color: 3066993, timestamp: new Date().toISOString() }] }) });
+        const response = await fetch(userWebhookUrl, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+                embeds: [{ 
+                    title: `⚔️ STATUS ${BOSS_DATA[filterType].name}`, 
+                    description: desc, 
+                    color: filterType.includes('Myrk') ? 10181046 : 3066993, 
+                    timestamp: new Date().toISOString() 
+                }] 
+            }) 
+        });
         btn.textContent = response.ok ? "✅ OK" : "❌ Erro";
     } catch (err) { btn.textContent = "❌ Erro"; }
     finally { setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000); }
@@ -301,7 +335,10 @@ function exportReport() {
     for (const t in BOSS_DATA) {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(b => {
-                if (b.respawnTime > 0) text += `${BOSS_DATA[t].name} - ${b.name.replace('<br>', ' ')}: ${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}${b.notSure ? " [INCERTO]" : ""}\n`;
+                if (b.respawnTime > 0) {
+                    const cleanName = b.name.replace('<br>', ' ');
+                    text += `${BOSS_DATA[t].name} - ${cleanName}: ${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}${b.notSure ? " [INCERTO]" : ""}\n`;
+                }
             });
         }
     }
