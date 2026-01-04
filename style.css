@@ -24,7 +24,7 @@ header.main-banner {
 .next-boss-highlight {
     background: rgba(20, 20, 25, 0.85); backdrop-filter: blur(10px);
     border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 12px;
-    padding: 15px; margin: -40px auto 30px auto; max-width: 500px; width: 90%;
+    padding: 15px; margin: -40px auto 30px auto; max-width: 600px; width: 90%;
     position: relative; z-index: 10; cursor: pointer; transition: 0.3s;
 }
 
@@ -55,22 +55,18 @@ header.main-banner {
     padding: 15px; min-width: 280px; transition: 0.3s; text-align: left; position: relative;
 }
 
-.highlight-flash { border-color: #d4af37 !important; box-shadow: 0 0 20px #d4af37; }
+.boss-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.boss-thumb { width: 60px; height: 60px; border-radius: 8px; border: 2px solid #d4af37; object-fit: cover; }
 
-/* Estilo para Janela Aberta */
-.boss-card.window-open { border-color: #2ecc71; box-shadow: 0 0 15px rgba(46, 204, 113, 0.3); }
-.window-status { font-size: 0.75rem; font-weight: bold; color: #2ecc71; display: block; margin-bottom: 5px; text-align: center; }
+.boss-card.window-open { border-color: #2ecc71; box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); }
+.window-status { font-size: 0.8rem; font-weight: bold; color: #2ecc71; display: block; text-align: center; }
 
 .boss-card.alert { border-color: #ff4d4d; animation: pulse 1.5s infinite; }
-.boss-card.fire-alert { border-color: #ff8c00 !important; animation: fire-glow 0.8s infinite alternate, shake 0.2s infinite; z-index: 5; }
+.boss-card.fire-alert { border-color: #ff8c00 !important; animation: fire-glow 0.8s infinite alternate; }
 
 @keyframes fire-glow {
-    0% { box-shadow: 0 0 10px #ff4500, 0 0 20px #ff8c00, inset 0 0 10px #ff4500; }
-    100% { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff4500, inset 0 0 20px #ff0000; }
-}
-@keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    100% { transform: translate(1px, 1px) rotate(0deg); }
+    0% { box-shadow: 0 0 10px #ff4500, 0 0 20px #ff8c00; }
+    100% { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff4500; }
 }
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); }
@@ -92,6 +88,9 @@ header.main-banner {
 
 .action-footer { display: flex; gap: 5px; }
 .undo-btn, .reset-btn { flex: 1; background: #333; color: #ccc; border: none; padding: 6px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; }
+
+.type-section.compact-mode .boss-card { min-width: 200px; padding: 10px; }
+.type-section.compact-mode .manual-box, .type-section.compact-mode .action-footer, .type-section.compact-mode .boss-thumb { display: none; }
 
 .discord-config { margin: 40px auto; max-width: 800px; padding: 0 20px; }
 .config-card { background: #111; border: 1px solid #d4af3766; border-radius: 12px; padding: 25px; text-align: left; }
