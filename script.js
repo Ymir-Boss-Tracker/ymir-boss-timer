@@ -16,25 +16,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Constantes de tempo
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-const ONE_HOUR_MS = 1 * 60 * 60 * 1000; // Tempo Myrkheimr
+const MYRK_MIN_MS = 50 * 60 * 1000; // Janela inicia em 50min
+const MYRK_MAX_MS = 60 * 60 * 1000; // Janela fecha em 60min
 const FIVE_MINUTES_MS = 5 * 1000 * 60;
-const ONE_MINUTE_MS = 1000 * 60;
 
 const BOSS_DATA_STRUCTURE = {
     'Comum': { name: 'Folkvangr Comum', bosses: ["Lancer", "Berserker", "Skald", "Mage"], duration: EIGHT_HOURS_MS },
     'Universal': { name: 'Folkvangr Universal', bosses: ["Lancer", "Berserker", "Skald", "Mage"], duration: TWO_HOURS_MS },
     'Myrk1': { 
         name: 'Myrkheimr Canal 1', 
-        bosses: ["[Lv.35] Trésá l", "[Lv.40] Troll Veterano", "[Lv.45] Jotun Truculento", "[Lv.50] Jotun do Fogo Atroz"], 
-        duration: ONE_HOUR_MS 
+        bosses: ["[Lv.66] Capitão Intruso Trésá l", "[Lv.67] Capitão Intruso Troll Veterano", "[Lv.68] Capitão Combatente Jotun Truculento", "[Lv.68] Capitão Desordeiro Jotun do Fogo Atroz"], 
+        isWindowed: true 
     },
     'Myrk2': { 
         name: 'Myrkheimr Canal 2', 
-        bosses: ["[Lv.35] Trésá l", "[Lv.40] Troll Veterano", "[Lv.45] Jotun Truculento", "[Lv.50] Jotun do Fogo Atroz"], 
-        duration: ONE_HOUR_MS 
+        bosses: ["[Lv.66] Capitão Intruso Trésá l", "[Lv.67] Capitão Intruso Troll Veterano", "[Lv.68] Capitão Combatente Jotun Truculento", "[Lv.68] Capitão Desordeiro Jotun do Fogo Atroz"], 
+        isWindowed: true 
     }
 };
 
@@ -43,49 +42,22 @@ let currentUser = null;
 let isCompactView = false;
 let userWebhookUrl = "";
 
-window.scrollToBoss = (id) => {
-    const element = document.getElementById('card-' + id);
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        element.classList.add('highlight-flash');
-        setTimeout(() => element.classList.remove('highlight-flash'), 2000);
-    }
-};
-
-document.getElementById('toggle-view-btn').onclick = () => {
-    isCompactView = !isCompactView;
-    document.getElementById('toggle-view-btn').textContent = isCompactView ? "🎴 Modo Cards" : "📱 Modo Compacto";
-    render();
-};
-
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('logout-btn').onclick = () => signOut(auth);
-document.getElementById('export-btn').onclick = () => exportReport();
-document.getElementById('sync-comum-btn').onclick = () => sendReportToDiscord('Comum');
-document.getElementById('sync-universal-btn').onclick = () => sendReportToDiscord('Universal');
-document.getElementById('sync-myrk1-btn').onclick = () => sendReportToDiscord('Myrk1');
-document.getElementById('sync-myrk2-btn').onclick = () => sendReportToDiscord('Myrk2');
-document.getElementById('reset-all-btn').onclick = () => resetAllTimers();
-
 document.getElementById('save-webhook-btn').onclick = async () => {
-    const val = document.getElementById('webhook-url-input').value.trim();
-    if (val && !val.startsWith("https://discord.com/api/webhooks/")) return alert("URL Inválida!");
-    userWebhookUrl = val; await save(); alert("Webhook salvo!");
+    userWebhookUrl = document.getElementById('webhook-url-input').value.trim();
+    await save(); alert("Webhook salvo!");
 };
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
+        document.getElementById('auth-controls').style.display = 'block';
         document.getElementById('login-btn').style.display = 'none';
         document.getElementById('user-info').style.display = 'block';
         document.getElementById('user-name').textContent = 'Olá, ' + user.displayName;
         document.getElementById('app-content').style.display = 'block';
         loadUserData();
-    } else {
-        currentUser = null;
-        document.getElementById('login-btn').style.display = 'inline-block';
-        document.getElementById('user-info').style.display = 'none';
-        document.getElementById('app-content').style.display = 'none';
     }
 });
 
@@ -95,15 +67,14 @@ function initializeBossData() {
         const config = BOSS_DATA_STRUCTURE[key];
         BOSS_DATA[key] = { name: config.name, floors: {} };
         const totalFloors = (key === 'Comum' || key === 'Universal') ? 4 : 1;
-        
         for (let p = 1; p <= totalFloors; p++) {
             const floorKey = totalFloors > 1 ? 'Piso ' + p : 'Área Única';
             BOSS_DATA[key].floors[floorKey] = { name: floorKey, bosses: [] };
             config.bosses.forEach(name => {
                 BOSS_DATA[key].floors[floorKey].bosses.push({
                     id: `${key.toLowerCase()}_${p}_${name.replace(/[\[\]\.\s]+/g, '_').toLowerCase()}`,
-                    name: name, respawnTime: 0, lastRespawnTime: null, alerted: false,
-                    floor: floorKey, typeKey: key, duration: config.duration, notSure: false
+                    name: name, respawnTime: 0, maxRespawnTime: 0, lastRespawnTime: null, alerted: false,
+                    floor: floorKey, isWindowed: config.isWindowed || false, duration: config.duration || 0
                 });
             });
         }
@@ -117,7 +88,7 @@ async function loadUserData() {
         const data = docSnap.data();
         (data.timers || []).forEach(s => {
             const b = findBossById(s.id);
-            if (b) { b.respawnTime = s.time; b.alerted = s.alerted; b.notSure = s.notSure || false; }
+            if (b) { b.respawnTime = s.time; b.maxRespawnTime = s.maxTime || 0; b.alerted = s.alerted; }
         });
         userWebhookUrl = data.webhookUrl || "";
         document.getElementById('webhook-url-input').value = userWebhookUrl;
@@ -126,12 +97,11 @@ async function loadUserData() {
 }
 
 async function save() {
-    if (!currentUser) return;
     const list = [];
     for (const t in BOSS_DATA) {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(b => {
-                list.push({id: b.id, time: b.respawnTime, alerted: b.alerted, notSure: b.notSure});
+                list.push({id: b.id, time: b.respawnTime, maxTime: b.maxRespawnTime, alerted: b.alerted});
             });
         }
     }
@@ -147,48 +117,16 @@ function findBossById(id) {
     }
 }
 
-function updateSingleCardDOM(id) {
-    const b = findBossById(id);
-    const card = document.getElementById('card-' + id);
-    if (!card) return;
-    card.querySelector('.label-morto span').textContent = b.respawnTime > 0 ? new Date(b.respawnTime - b.duration).toLocaleTimeString('pt-BR') : "--:--";
-    card.querySelector('.label-nasce span').textContent = b.respawnTime > 0 ? new Date(b.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-}
-
-window.toggleNotSure = (id) => { const b = findBossById(id); b.notSure = document.getElementById('not-sure-' + id).checked; save(); };
-
 window.killBoss = (id) => {
-    const b = findBossById(id); b.lastRespawnTime = b.respawnTime;
-    b.respawnTime = Date.now() + b.duration; b.alerted = false;
-    save(); updateSingleCardDOM(id);
-};
-
-window.setManualTime = (id) => {
-    const inputEl = document.getElementById('manual-input-' + id);
-    if (!inputEl.value) return alert("Selecione o horário!");
-    const b = findBossById(id); b.lastRespawnTime = b.respawnTime;
-    const parts = inputEl.value.split(':').map(Number);
-    const d = new Date(); d.setHours(parts[0], parts[1], parts[2] || 0, 0);
-    if (d > new Date()) d.setDate(d.getDate() - 1);
-    b.respawnTime = d.getTime() + b.duration; b.alerted = false;
-    inputEl.value = ""; save(); updateSingleCardDOM(id);
-};
-
-window.undoKill = (id) => {
     const b = findBossById(id);
-    if (b.lastRespawnTime !== null) { b.respawnTime = b.lastRespawnTime; b.lastRespawnTime = null; b.alerted = false; save(); updateSingleCardDOM(id); }
-};
-
-window.resetBoss = (id) => {
-    const b = findBossById(id); b.respawnTime = 0; b.alerted = false; b.notSure = false;
-    const cb = document.getElementById('not-sure-' + id); if(cb) cb.checked = false;
-    save(); updateSingleCardDOM(id);
-};
-
-window.resetAllTimers = async () => {
-    if (!confirm("Resetar tudo?")) return;
-    for (const t in BOSS_DATA) { for (const f in BOSS_DATA[t].floors) { BOSS_DATA[t].floors[f].bosses.forEach(b => { b.respawnTime = 0; b.notSure = false; }); } }
-    await save(); render();
+    b.lastRespawnTime = b.respawnTime;
+    if (b.isWindowed) {
+        b.respawnTime = Date.now() + MYRK_MIN_MS;
+        b.maxRespawnTime = Date.now() + MYRK_MAX_MS;
+    } else {
+        b.respawnTime = Date.now() + b.duration;
+    }
+    b.alerted = false; save(); render();
 };
 
 function updateBossTimers() {
@@ -196,21 +134,31 @@ function updateBossTimers() {
     for (const t in BOSS_DATA) {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(boss => {
-                const timerTxt = document.getElementById('timer-' + boss.id), bar = document.getElementById('bar-' + boss.id), card = document.getElementById('card-' + boss.id);
-                if (!timerTxt || !bar || !card) return;
-                if (boss.respawnTime === 0 || boss.respawnTime <= now) {
-                    boss.respawnTime = 0; timerTxt.textContent = "DISPONÍVEL!"; timerTxt.style.color = "#2ecc71";
-                    bar.style.width = "100%"; bar.style.backgroundColor = "#2ecc71"; card.classList.remove('alert', 'fire-alert');
+                const timerTxt = document.getElementById('timer-' + boss.id), card = document.getElementById('card-' + boss.id);
+                if (!timerTxt || !card) return;
+
+                if (boss.respawnTime === 0) {
+                    timerTxt.textContent = "DISPONÍVEL!";
+                } else if (boss.isWindowed && now >= boss.respawnTime && now < boss.maxRespawnTime) {
+                    // JANELA ABERTA
+                    const diff = boss.maxRespawnTime - now;
+                    card.classList.add('window-open');
+                    const m = Math.floor(diff / 60000), s = Math.floor((diff % 60000) / 1000);
+                    timerTxt.innerHTML = `<span class="window-status">JANELA ABERTA</span>${m}:${s.toString().padStart(2,'0')}`;
+                    timerTxt.style.color = "#2ecc71";
+                } else if (now >= (boss.isWindowed ? boss.maxRespawnTime : boss.respawnTime)) {
+                    boss.respawnTime = 0; boss.maxRespawnTime = 0;
+                    card.classList.remove('window-open', 'alert');
+                    render();
                 } else {
-                    const diff = boss.respawnTime - now, percent = (diff / boss.duration) * 100;
-                    bar.style.width = percent + '%';
-                    if (diff <= ONE_MINUTE_MS) { card.classList.add('fire-alert'); timerTxt.style.color = "#ff8c00"; }
-                    else if (diff <= FIVE_MINUTES_MS) {
-                        card.classList.add('alert'); timerTxt.style.color = "#ff4d4d";
-                        if (!boss.alerted) { document.getElementById('alert-sound').play().catch(() => {}); boss.alerted = true; save(); }
-                    } else { card.classList.remove('alert', 'fire-alert'); timerTxt.style.color = "#f1c40f"; boss.alerted = false; }
-                    const h = Math.floor(diff / 3600000).toString().padStart(2,'0'), m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0'), s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
+                    const diff = boss.respawnTime - now;
+                    const h = Math.floor(diff / 3600000).toString().padStart(2,'0');
+                    const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0');
+                    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
                     timerTxt.textContent = `${h}:${m}:${s}`;
+                    if (diff <= FIVE_MINUTES_MS && !boss.alerted) {
+                        document.getElementById('alert-sound').play(); boss.alerted = true; save();
+                    }
                 }
             });
         }
@@ -219,61 +167,25 @@ function updateBossTimers() {
 
 function render() {
     const container = document.getElementById('boss-list-container'); container.innerHTML = '';
-    const viewClass = isCompactView ? 'compact-mode' : '';
     for (const type in BOSS_DATA) {
-        const section = document.createElement('section'); section.className = `type-section ${viewClass}`;
+        const section = document.createElement('section'); section.className = 'type-section';
         section.innerHTML = `<h2>${BOSS_DATA[type].name}</h2>`;
-        const grid = document.createElement('div'); grid.className = 'floors-container';
         for (const f in BOSS_DATA[type].floors) {
-            const floorDiv = document.createElement('div'); floorDiv.className = 'floor-section';
-            let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
+            const grid = document.createElement('div'); grid.className = 'boss-grid';
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
-                const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - boss.duration).toLocaleTimeString('pt-BR') : "--:--", nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-                floorHtml += `<div class="boss-card" id="card-${boss.id}">
+                grid.innerHTML += `<div class="boss-card" id="card-${boss.id}">
                     <h4>${boss.name}</h4>
                     <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
-                    <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
-                    <div class="static-times"><p class="label-morto">Morto: <span>${mStr}</span></p><p class="label-nasce">Nasce: <span>${nStr}</span></p></div>
-                    <label class="uncertainty-box"><input type="checkbox" id="not-sure-${boss.id}" ${boss.notSure ? 'checked' : ''} onchange="toggleNotSure('${boss.id}')"> Horário Incerto</label>
                     <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
-                    <div class="manual-box"><input type="time" id="manual-input-${boss.id}" step="1"><button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button></div>
-                    <div class="action-footer"><button class="undo-btn" onclick="undoKill('${boss.id}')">↩ Desfazer</button><button class="reset-btn" onclick="resetBoss('${boss.id}')">Reset</button></div>
+                    <div class="action-footer">
+                        <button class="reset-btn" onclick="resetBoss('${boss.id}')">Reset</button>
+                    </div>
                 </div>`;
             });
-            floorDiv.innerHTML = floorHtml + '</div>'; grid.appendChild(floorDiv);
+            section.appendChild(grid);
         }
-        section.appendChild(grid); container.appendChild(section);
+        container.appendChild(section);
     }
 }
 
-async function sendReportToDiscord(filterType) {
-    if (!userWebhookUrl) return alert("Configure o seu Webhook no painel abaixo!");
-    const btnId = `sync-${filterType.toLowerCase()}-btn`, btn = document.getElementById(btnId), originalText = btn.textContent;
-    btn.textContent = "⌛..."; btn.disabled = true;
-    let desc = `**⏳ PRÓXIMOS RESPAWNS (${BOSS_DATA[filterType].name})**\n`;
-    for (const f in BOSS_DATA[filterType].floors) {
-        BOSS_DATA[filterType].floors[f].bosses.forEach(b => { 
-            if (b.respawnTime > 0) desc += `• **${b.name}** (${b.floor}) -> **${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}**${b.notSure ? " ⚠️" : ""}\n`;
-        });
-    }
-    try {
-        const response = await fetch(userWebhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [{ title: `⚔️ STATUS ${filterType.toUpperCase()}`, description: desc, color: 3066993, timestamp: new Date().toISOString() }] }) });
-        btn.textContent = response.ok ? "✅ OK" : "❌ Erro";
-    } catch (err) { btn.textContent = "❌ Erro"; }
-    finally { setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 3000); }
-}
-
-function exportReport() {
-    let text = "⚔️ RELATÓRIO DE BOSSES ⚔️\n\n";
-    for (const t in BOSS_DATA) {
-        for (const f in BOSS_DATA[t].floors) {
-            BOSS_DATA[t].floors[f].bosses.forEach(b => {
-                if (b.respawnTime > 0) text += `${BOSS_DATA[t].name} - ${b.name}: ${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}${b.notSure ? " [INCERTO]" : ""}\n`;
-            });
-        }
-    }
-    const blob = new Blob([text], { type: 'text/plain' }), link = document.createElement('a');
-    link.href = URL.createObjectURL(blob); link.download = 'Relatorio_Ymir.txt'; link.click();
-}
-
-setInterval(() => { if(currentUser) updateBossTimers(); }, 1000);
+setInterval(updateBossTimers, 1000);
