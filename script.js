@@ -109,7 +109,8 @@ function initializeBossData() {
                 BOSS_DATA[type].floors[floorKey].bosses.push({
                     id: type.toLowerCase() + '_' + p + '_' + bossName.replace(/[\[\]\s\.<br>]+/g, '_').toLowerCase(),
                     name: bossName, respawnTime: 0, lastRespawnTime: null, alerted: false, 
-                    floor: floorKey, type: type, image: BOSS_IMAGES[bossName] || "https://placehold.co/100x100/111/d4af37?text=Boss", notSure: false
+                    floor: floorKey, type: type, image: BOSS_IMAGES[bossName] || "https://placehold.co/100x100/111/d4af37?text=Boss", notSure: false,
+                    history: [] // Inicializa histórico vazio
                 });
             });
         }
@@ -123,7 +124,12 @@ async function loadUserData() {
         const data = docSnap.data();
         (data.timers || []).forEach(s => {
             const b = findBossById(s.id);
-            if (b) { b.respawnTime = s.time; b.alerted = s.alerted; b.notSure = s.notSure || false; }
+            if (b) { 
+                b.respawnTime = s.time; 
+                b.alerted = s.alerted; 
+                b.notSure = s.notSure || false; 
+                b.history = s.history || []; // Carrega o histórico
+            }
         });
         if (data.webhookUrl) {
             userWebhookUrl = data.webhookUrl;
@@ -139,7 +145,13 @@ async function save() {
     for (const t in BOSS_DATA) {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(b => {
-                list.push({id: b.id, time: b.respawnTime, alerted: b.alerted, notSure: b.notSure});
+                list.push({
+                    id: b.id, 
+                    time: b.respawnTime, 
+                    alerted: b.alerted, 
+                    notSure: b.notSure,
+                    history: b.history || [] // Salva o histórico
+                });
             });
         }
     }
@@ -199,9 +211,17 @@ window.toggleNotSure = (id) => { const b = findBossById(id); b.notSure = documen
 window.killBoss = (id) => {
     const b = findBossById(id); b.lastRespawnTime = b.respawnTime;
     let duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
-    if (b.type.includes('Myrkheimr')) duration = MYRK_MIN_MS;
+    const now = Date.now();
 
-    b.respawnTime = Date.now() + duration; b.alerted = false;
+    if (b.type.includes('Myrkheimr')) {
+        duration = MYRK_MIN_MS;
+        // Adiciona ao histórico exclusivo de Myrkheimr
+        if (!b.history) b.history = [];
+        b.history.unshift(now);
+        if (b.history.length > 3) b.history.pop();
+    }
+
+    b.respawnTime = now + duration; b.alerted = false;
     b.notSure = false;
     save(); updateSingleCardDOM(id);
 };
@@ -215,7 +235,13 @@ window.setManualTime = (id) => {
     if (d > new Date()) d.setDate(d.getDate() - 1);
     
     let duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
-    if (b.type.includes('Myrkheimr')) duration = MYRK_MIN_MS;
+    if (b.type.includes('Myrkheimr')) {
+        duration = MYRK_MIN_MS;
+        // Adiciona ao histórico exclusivo de Myrkheimr
+        if (!b.history) b.history = [];
+        b.history.unshift(d.getTime());
+        if (b.history.length > 3) b.history.pop();
+    }
 
     b.respawnTime = d.getTime() + duration; b.alerted = false;
     b.notSure = false;
@@ -224,18 +250,37 @@ window.setManualTime = (id) => {
 
 window.undoKill = (id) => {
     const b = findBossById(id);
-    if (b.lastRespawnTime) { b.respawnTime = b.lastRespawnTime; b.lastRespawnTime = null; b.alerted = false; save(); updateSingleCardDOM(id); }
+    if (b.lastRespawnTime) { 
+        b.respawnTime = b.lastRespawnTime; 
+        b.lastRespawnTime = null; 
+        b.alerted = false;
+        // Remove a última entrada do histórico se for Myrk
+        if (b.type.includes('Myrkheimr') && b.history && b.history.length > 0) {
+            b.history.shift();
+        }
+        save(); 
+        updateSingleCardDOM(id); 
+    }
 };
 
 window.resetBoss = (id) => {
     const b = findBossById(id); b.respawnTime = 0; b.alerted = false; b.notSure = false;
+    b.history = []; // Limpa o histórico no reset individual
     const cb = document.getElementById('not-sure-' + id); if(cb) cb.checked = false;
     save(); updateSingleCardDOM(id);
 };
 
 window.resetAllTimers = async () => {
     if (!confirm("Resetar tudo?")) return;
-    for (const t in BOSS_DATA) { for (const f in BOSS_DATA[t].floors) { BOSS_DATA[t].floors[f].bosses.forEach(b => { b.respawnTime = 0; b.notSure = false; }); } }
+    for (const t in BOSS_DATA) { 
+        for (const f in BOSS_DATA[t].floors) { 
+            BOSS_DATA[t].floors[f].bosses.forEach(b => { 
+                b.respawnTime = 0; 
+                b.notSure = false; 
+                b.history = []; // Limpa todos os históricos
+            }); 
+        } 
+    }
     await save(); render();
 };
 
@@ -258,7 +303,6 @@ function updateBossTimers() {
                 const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
 
                 if (isMyrk) {
-                    // Lógica Myrkheimr: Alerta visual/sonoro APENAS no início da janela
                     if (now >= boss.respawnTime && now <= windowEnd) {
                         timerTxt.textContent = "JANELA!"; timerTxt.style.color = "#e74c3c";
                         bar.style.width = "100%"; bar.style.backgroundColor = "#e74c3c";
@@ -272,19 +316,17 @@ function updateBossTimers() {
                     } else if (now > windowEnd) {
                         boss.respawnTime = 0; save();
                     } else {
-                        // Enquanto está fora da janela (em contagem), apenas atualiza o texto/barra, SEM alertas de 5 min
                         const percent = (diff / MYRK_MIN_MS) * 100;
                         bar.style.width = percent + '%';
-                        bar.style.backgroundColor = "#3498db"; // Azul neutro enquanto espera
+                        bar.style.backgroundColor = "#3498db";
                         card.classList.remove('alert', 'fire-alert');
                         timerTxt.style.color = "#f1c40f";
-                        boss.alerted = false; // Garante que o alerta dispare quando entrar na janela
+                        boss.alerted = false;
                         
                         const h = Math.floor(diff / 3600000).toString().padStart(2,'0'), m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0'), s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
                         timerTxt.textContent = `${h}:${m}:${s}`;
                     }
                 } else {
-                    // Lógica padrão para Comum/Universal: Alerta 5 min antes via updateCountdown
                     if (diff <= 0) {
                         boss.respawnTime = 0;
                     } else {
@@ -406,12 +448,18 @@ function exportReport() {
     for (const t in BOSS_DATA) {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(b => {
+                const cleanName = b.name.replace('<br>', ' ');
+                
                 if (b.respawnTime > 0) {
-                    const cleanName = b.name.replace('<br>', ' ');
                     const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
                     if (b.type.includes('Myrkheimr')) {
                         const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
                         text += `${BOSS_DATA[t].name} - ${cleanName}: JANELA ${timeStr} - ${windowEnd}${b.notSure ? " [INCERTO]" : ""}\n`;
+                        
+                        // Adiciona histórico ao TXT se for Myrk
+                        if (b.history && b.history.length > 0) {
+                            text += `   ↳ Histórico (Últimas mortes): ${b.history.map(h => new Date(h).toLocaleTimeString('pt-BR')).join(' | ')}\n`;
+                        }
                     } else {
                         text += `${BOSS_DATA[t].name} - ${cleanName}: ${timeStr}${b.notSure ? " [INCERTO]" : ""}\n`;
                     }
