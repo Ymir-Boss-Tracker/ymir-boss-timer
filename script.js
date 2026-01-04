@@ -162,6 +162,10 @@ function updateSingleCardDOM(id) {
     const nStr = b.respawnTime > 0 ? new Date(b.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
     card.querySelector('.label-morto span').textContent = mStr;
     card.querySelector('.label-nasce span').textContent = nStr;
+    
+    // Atualiza o estado visual do checkbox de incerteza no card
+    const cb = document.getElementById('not-sure-' + id);
+    if(cb) cb.checked = b.notSure;
 }
 
 function updateNextBossHighlight() {
@@ -192,6 +196,7 @@ window.killBoss = (id) => {
     const b = findBossById(id); b.lastRespawnTime = b.respawnTime;
     const duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
     b.respawnTime = Date.now() + duration; b.alerted = false;
+    b.notSure = false; // Reset de incerteza ao marcar como derrotado
     save(); updateSingleCardDOM(id);
 };
 
@@ -204,6 +209,7 @@ window.setManualTime = (id) => {
     if (d > new Date()) d.setDate(d.getDate() - 1);
     const duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
     b.respawnTime = d.getTime() + duration; b.alerted = false;
+    b.notSure = false; // Reset de incerteza ao definir tempo manual
     inputEl.value = ""; save(); updateSingleCardDOM(id);
 };
 
