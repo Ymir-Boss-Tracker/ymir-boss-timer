@@ -25,6 +25,8 @@ const BOSS_IMAGES = {
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const MYRK_MIN_MS = 50 * 60 * 1000; // 50 min
+const MYRK_MAX_MS = 60 * 60 * 1000; // 60 min
 const FIVE_MINUTES_MS = 5 * 1000 * 60;
 const ONE_MINUTE_MS = 1000 * 60;
 
@@ -157,13 +159,15 @@ function updateSingleCardDOM(id) {
     const b = findBossById(id);
     const card = document.getElementById('card-' + id);
     if (!card) return;
-    const duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    
+    let duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    if (b.type.includes('Myrkheimr')) duration = MYRK_MIN_MS;
+
     const mStr = b.respawnTime > 0 ? new Date(b.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
     const nStr = b.respawnTime > 0 ? new Date(b.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
     card.querySelector('.label-morto span').textContent = mStr;
     card.querySelector('.label-nasce span').textContent = nStr;
     
-    // Atualiza o estado visual do checkbox de incerteza no card
     const cb = document.getElementById('not-sure-' + id);
     if(cb) cb.checked = b.notSure;
 }
@@ -194,9 +198,11 @@ window.toggleNotSure = (id) => { const b = findBossById(id); b.notSure = documen
 
 window.killBoss = (id) => {
     const b = findBossById(id); b.lastRespawnTime = b.respawnTime;
-    const duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    let duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    if (b.type.includes('Myrkheimr')) duration = MYRK_MIN_MS;
+
     b.respawnTime = Date.now() + duration; b.alerted = false;
-    b.notSure = false; // Reset de incerteza ao marcar como derrotado
+    b.notSure = false;
     save(); updateSingleCardDOM(id);
 };
 
@@ -207,9 +213,12 @@ window.setManualTime = (id) => {
     const parts = inputEl.value.split(':').map(Number);
     const d = new Date(); d.setHours(parts[0], parts[1], parts[2] || 0, 0);
     if (d > new Date()) d.setDate(d.getDate() - 1);
-    const duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    
+    let duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+    if (b.type.includes('Myrkheimr')) duration = MYRK_MIN_MS;
+
     b.respawnTime = d.getTime() + duration; b.alerted = false;
-    b.notSure = false; // Reset de incerteza ao definir tempo manual
+    b.notSure = false;
     inputEl.value = ""; save(); updateSingleCardDOM(id);
 };
 
@@ -237,24 +246,58 @@ function updateBossTimers() {
             BOSS_DATA[t].floors[f].bosses.forEach(boss => {
                 const timerTxt = document.getElementById('timer-' + boss.id), bar = document.getElementById('bar-' + boss.id), card = document.getElementById('card-' + boss.id);
                 if (!timerTxt || !bar || !card) return;
-                if (boss.respawnTime === 0 || boss.respawnTime <= now) {
-                    boss.respawnTime = 0; timerTxt.textContent = "DISPONÍVEL!"; timerTxt.style.color = "#2ecc71";
+
+                if (boss.respawnTime === 0) {
+                    timerTxt.textContent = "DISPONÍVEL!"; timerTxt.style.color = "#2ecc71";
                     bar.style.width = "100%"; bar.style.backgroundColor = "#2ecc71"; card.classList.remove('alert', 'fire-alert');
+                    return;
+                }
+
+                const isMyrk = boss.type.includes('Myrkheimr');
+                const diff = boss.respawnTime - now;
+                const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
+
+                // Lógica de Myrkheimr: Janela entre 50 e 60 min
+                if (isMyrk) {
+                    if (now >= boss.respawnTime && now <= windowEnd) {
+                        timerTxt.textContent = "JANELA!"; timerTxt.style.color = "#e74c3c";
+                        bar.style.width = "100%"; bar.style.backgroundColor = "#e74c3c";
+                        card.classList.add('fire-alert');
+                    } else if (now > windowEnd) {
+                        boss.respawnTime = 0;
+                        save();
+                    } else {
+                        updateCountdown(boss, diff, timerTxt, bar, card, MYRK_MIN_MS);
+                    }
                 } else {
-                    const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
-                    const diff = boss.respawnTime - now, percent = (diff / duration) * 100;
-                    bar.style.width = percent + '%';
-                    if (diff <= ONE_MINUTE_MS) { card.classList.add('fire-alert'); timerTxt.style.color = "#ff8c00"; }
-                    else if (diff <= FIVE_MINUTES_MS) {
-                        card.classList.add('alert'); timerTxt.style.color = "#ff4d4d";
-                        if (!boss.alerted) { document.getElementById('alert-sound').play().catch(() => {}); boss.alerted = true; save(); }
-                    } else { card.classList.remove('alert', 'fire-alert'); timerTxt.style.color = "#f1c40f"; boss.alerted = false; }
-                    const h = Math.floor(diff / 3600000).toString().padStart(2,'0'), m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0'), s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
-                    timerTxt.textContent = `${h}:${m}:${s}`;
+                    // Lógica padrão
+                    if (diff <= 0) {
+                        boss.respawnTime = 0;
+                    } else {
+                        const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+                        updateCountdown(boss, diff, timerTxt, bar, card, duration);
+                    }
                 }
             });
         }
     }
+}
+
+function updateCountdown(boss, diff, timerTxt, bar, card, duration) {
+    const percent = (diff / duration) * 100;
+    bar.style.width = percent + '%';
+    
+    if (diff <= ONE_MINUTE_MS) { 
+        card.classList.add('fire-alert'); timerTxt.style.color = "#ff8c00"; 
+    } else if (diff <= FIVE_MINUTES_MS) {
+        card.classList.add('alert'); timerTxt.style.color = "#ff4d4d";
+        if (!boss.alerted) { document.getElementById('alert-sound').play().catch(() => {}); boss.alerted = true; save(); }
+    } else { 
+        card.classList.remove('alert', 'fire-alert'); timerTxt.style.color = "#f1c40f"; boss.alerted = false; 
+    }
+    
+    const h = Math.floor(diff / 3600000).toString().padStart(2,'0'), m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0'), s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
+    timerTxt.textContent = `${h}:${m}:${s}`;
 }
 
 function render() {
@@ -268,7 +311,9 @@ function render() {
             const floorDiv = document.createElement('div'); floorDiv.className = 'floor-section';
             let floorHtml = `<h3>${f}</h3><div class="boss-grid">`;
             BOSS_DATA[type].floors[f].bosses.forEach(boss => {
-                const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+                let duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
+                if (boss.type.includes('Myrkheimr')) duration = MYRK_MIN_MS;
+
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--", nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
                 floorHtml += `<div class="boss-card" id="card-${boss.id}">
                     <div class="boss-header">${!isCompactView ? `<img src="${boss.image}" class="boss-thumb">` : ""}<h4>${boss.name}</h4></div>
@@ -310,8 +355,14 @@ async function sendReportToDiscord(filterType) {
                 found = true;
                 const cleanName = b.name.replace('<br>', ' ');
                 const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
-                const uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
-                desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
+                let uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
+                
+                if (b.type.includes('Myrkheimr')) {
+                    const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
+                    desc += `• **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
+                } else {
+                    desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
+                }
             }
         });
     }
@@ -343,7 +394,13 @@ function exportReport() {
             BOSS_DATA[t].floors[f].bosses.forEach(b => {
                 if (b.respawnTime > 0) {
                     const cleanName = b.name.replace('<br>', ' ');
-                    text += `${BOSS_DATA[t].name} - ${cleanName}: ${new Date(b.respawnTime).toLocaleTimeString('pt-BR')}${b.notSure ? " [INCERTO]" : ""}\n`;
+                    const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
+                    if (b.type.includes('Myrkheimr')) {
+                        const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
+                        text += `${BOSS_DATA[t].name} - ${cleanName}: JANELA ${timeStr} - ${windowEnd}${b.notSure ? " [INCERTO]" : ""}\n`;
+                    } else {
+                        text += `${BOSS_DATA[t].name} - ${cleanName}: ${timeStr}${b.notSure ? " [INCERTO]" : ""}\n`;
+                    }
                 }
             });
         }
