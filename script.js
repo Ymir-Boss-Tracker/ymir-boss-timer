@@ -258,26 +258,33 @@ function updateBossTimers() {
                 const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
 
                 if (isMyrk) {
-                    // Logica Myrkheimr: Alerta visual/sonoro logo no início da janela (diff <= 0)
+                    // Lógica Myrkheimr: Alerta visual/sonoro APENAS no início da janela
                     if (now >= boss.respawnTime && now <= windowEnd) {
                         timerTxt.textContent = "JANELA!"; timerTxt.style.color = "#e74c3c";
                         bar.style.width = "100%"; bar.style.backgroundColor = "#e74c3c";
                         card.classList.add('fire-alert'); 
                         
-                        // Toca o alarme assim que entra na janela
                         if (!boss.alerted) { 
                             document.getElementById('alert-sound').play().catch(() => {}); 
                             boss.alerted = true; 
                             save(); 
                         }
                     } else if (now > windowEnd) {
-                        boss.respawnTime = 0;
-                        save();
+                        boss.respawnTime = 0; save();
                     } else {
-                        updateCountdown(boss, diff, timerTxt, bar, card, MYRK_MIN_MS);
+                        // Enquanto está fora da janela (em contagem), apenas atualiza o texto/barra, SEM alertas de 5 min
+                        const percent = (diff / MYRK_MIN_MS) * 100;
+                        bar.style.width = percent + '%';
+                        bar.style.backgroundColor = "#3498db"; // Azul neutro enquanto espera
+                        card.classList.remove('alert', 'fire-alert');
+                        timerTxt.style.color = "#f1c40f";
+                        boss.alerted = false; // Garante que o alerta dispare quando entrar na janela
+                        
+                        const h = Math.floor(diff / 3600000).toString().padStart(2,'0'), m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0'), s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
+                        timerTxt.textContent = `${h}:${m}:${s}`;
                     }
                 } else {
-                    // Logica padrão: Alerta visual/sonoro 5 min antes
+                    // Lógica padrão para Comum/Universal: Alerta 5 min antes via updateCountdown
                     if (diff <= 0) {
                         boss.respawnTime = 0;
                     } else {
