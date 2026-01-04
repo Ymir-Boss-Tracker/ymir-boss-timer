@@ -110,7 +110,7 @@ function initializeBossData() {
                     id: type.toLowerCase() + '_' + p + '_' + bossName.replace(/[\[\]\s\.<br>]+/g, '_').toLowerCase(),
                     name: bossName, respawnTime: 0, lastRespawnTime: null, alerted: false, 
                     floor: floorKey, type: type, image: BOSS_IMAGES[bossName] || "https://placehold.co/100x100/111/d4af37?text=Boss", notSure: false,
-                    history: [] // Inicializa histórico vazio
+                    history: []
                 });
             });
         }
@@ -128,7 +128,7 @@ async function loadUserData() {
                 b.respawnTime = s.time; 
                 b.alerted = s.alerted; 
                 b.notSure = s.notSure || false; 
-                b.history = s.history || []; // Carrega o histórico
+                b.history = s.history || [];
             }
         });
         if (data.webhookUrl) {
@@ -150,7 +150,7 @@ async function save() {
                     time: b.respawnTime, 
                     alerted: b.alerted, 
                     notSure: b.notSure,
-                    history: b.history || [] // Salva o histórico
+                    history: b.history || []
                 });
             });
         }
@@ -215,7 +215,6 @@ window.killBoss = (id) => {
 
     if (b.type.includes('Myrkheimr')) {
         duration = MYRK_MIN_MS;
-        // Adiciona ao histórico exclusivo de Myrkheimr
         if (!b.history) b.history = [];
         b.history.unshift(now);
         if (b.history.length > 3) b.history.pop();
@@ -237,7 +236,6 @@ window.setManualTime = (id) => {
     let duration = b.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
     if (b.type.includes('Myrkheimr')) {
         duration = MYRK_MIN_MS;
-        // Adiciona ao histórico exclusivo de Myrkheimr
         if (!b.history) b.history = [];
         b.history.unshift(d.getTime());
         if (b.history.length > 3) b.history.pop();
@@ -254,7 +252,6 @@ window.undoKill = (id) => {
         b.respawnTime = b.lastRespawnTime; 
         b.lastRespawnTime = null; 
         b.alerted = false;
-        // Remove a última entrada do histórico se for Myrk
         if (b.type.includes('Myrkheimr') && b.history && b.history.length > 0) {
             b.history.shift();
         }
@@ -265,7 +262,7 @@ window.undoKill = (id) => {
 
 window.resetBoss = (id) => {
     const b = findBossById(id); b.respawnTime = 0; b.alerted = false; b.notSure = false;
-    b.history = []; // Limpa o histórico no reset individual
+    b.history = []; 
     const cb = document.getElementById('not-sure-' + id); if(cb) cb.checked = false;
     save(); updateSingleCardDOM(id);
 };
@@ -277,7 +274,7 @@ window.resetAllTimers = async () => {
             BOSS_DATA[t].floors[f].bosses.forEach(b => { 
                 b.respawnTime = 0; 
                 b.notSure = false; 
-                b.history = []; // Limpa todos os históricos
+                b.history = []; 
             }); 
         } 
     }
@@ -456,7 +453,6 @@ function exportReport() {
                         const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
                         text += `${BOSS_DATA[t].name} - ${cleanName}: JANELA ${timeStr} - ${windowEnd}${b.notSure ? " [INCERTO]" : ""}\n`;
                         
-                        // Adiciona histórico ao TXT se for Myrk
                         if (b.history && b.history.length > 0) {
                             text += `   ↳ Histórico (Últimas mortes): ${b.history.map(h => new Date(h).toLocaleTimeString('pt-BR')).join(' | ')}\n`;
                         }
