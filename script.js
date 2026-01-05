@@ -280,7 +280,31 @@ window.resetAllTimers = async () => {
 };
 
 function updateBossTimers() {
-    const now = Date.now(); updateNextBossHighlight();
+    const now = Date.now(); 
+    updateNextBossHighlight();
+
+    // Lógica de Prioridade para Myrkheimr nos Cards
+    ['Myrkheimr1', 'Myrkheimr2'].forEach(type => {
+        let myrkList = [];
+        for (const f in BOSS_DATA[type].floors) {
+            BOSS_DATA[type].floors[f].bosses.forEach(b => { if(b.respawnTime > 0) myrkList.push(b); });
+        }
+        myrkList.sort((a, b) => a.respawnTime - b.respawnTime);
+        
+        // Limpar badges de todos primeiro
+        for (const f in BOSS_DATA[type].floors) {
+            BOSS_DATA[type].floors[f].bosses.forEach(b => {
+                const badge = document.getElementById('priority-' + b.id);
+                if(badge) badge.textContent = "";
+            });
+        }
+        // Aplicar badges na ordem correta
+        myrkList.forEach((b, idx) => {
+            const badge = document.getElementById('priority-' + b.id);
+            if(badge) badge.textContent = (idx + 1) + "º ";
+        });
+    });
+
     for (const t in BOSS_DATA) {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(boss => {
@@ -367,7 +391,10 @@ function render() {
 
                 const mStr = boss.respawnTime > 0 ? new Date(boss.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--", nStr = boss.respawnTime > 0 ? new Date(boss.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
                 floorHtml += `<div class="boss-card" id="card-${boss.id}">
-                    <div class="boss-header">${!isCompactView ? `<img src="${boss.image}" class="boss-thumb">` : ""}<h4>${boss.name}</h4></div>
+                    <div class="boss-header">
+                        ${!isCompactView ? `<img src="${boss.image}" class="boss-thumb">` : ""}
+                        <h4><span class="priority-badge" id="priority-${boss.id}"></span>${boss.name}</h4>
+                    </div>
                     <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
                     <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
                     <div class="static-times"><p class="label-morto">Morto: <span>${mStr}</span></p><p class="label-nasce">Nasce: <span>${nStr}</span></p></div>
@@ -400,7 +427,6 @@ async function sendReportToDiscord(filterType) {
     let desc = `**⏳ PRÓXIMOS RESPAWNS (${BOSS_DATA[filterType].name.toUpperCase()})**\n`;
     let bossList = [];
 
-    // Coletar todos os bosses do tipo selecionado que possuem timer
     for (const f in BOSS_DATA[filterType].floors) {
         BOSS_DATA[filterType].floors[f].bosses.forEach(b => { 
             if (b.respawnTime > 0) bossList.push(b);
@@ -410,7 +436,6 @@ async function sendReportToDiscord(filterType) {
     if (bossList.length === 0) {
         desc += "_Nenhum boss em contagem no momento._";
     } else {
-        // Ordenação por tempo (importante para Myrkheimr)
         bossList.sort((a, b) => a.respawnTime - b.respawnTime);
 
         bossList.forEach((b, index) => {
@@ -420,7 +445,6 @@ async function sendReportToDiscord(filterType) {
             
             if (b.type.includes('Myrkheimr')) {
                 const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
-                // Adiciona numeração de prioridade (1º, 2º...)
                 desc += `**${index + 1}º** • **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
             } else {
                 desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
