@@ -221,7 +221,6 @@ window.killBoss = (id) => {
     }
 
     b.respawnTime = now + duration; b.alerted = false;
-    // Removida limpeza automática da incerteza
     save(); updateSingleCardDOM(id);
 };
 
@@ -242,7 +241,6 @@ window.setManualTime = (id) => {
     }
 
     b.respawnTime = d.getTime() + duration; b.alerted = false;
-    // Removida limpeza automática da incerteza
     inputEl.value = ""; save(); updateSingleCardDOM(id);
 };
 
@@ -400,27 +398,35 @@ async function sendReportToDiscord(filterType) {
     btn.textContent = "⌛..."; btn.disabled = true;
     
     let desc = `**⏳ PRÓXIMOS RESPAWNS (${BOSS_DATA[filterType].name.toUpperCase()})**\n`;
-    let found = false;
+    let bossList = [];
 
+    // Coletar todos os bosses do tipo selecionado que possuem timer
     for (const f in BOSS_DATA[filterType].floors) {
         BOSS_DATA[filterType].floors[f].bosses.forEach(b => { 
-            if (b.respawnTime > 0) {
-                found = true;
-                const cleanName = b.name.replace(/<br>/g, ' ');
-                const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
-                let uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
-                
-                if (b.type.includes('Myrkheimr')) {
-                    const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
-                    desc += `• **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
-                } else {
-                    desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
-                }
-            }
+            if (b.respawnTime > 0) bossList.push(b);
         });
     }
 
-    if (!found) desc += "_Nenhum boss em contagem no momento._";
+    if (bossList.length === 0) {
+        desc += "_Nenhum boss em contagem no momento._";
+    } else {
+        // Ordenação por tempo (importante para Myrkheimr)
+        bossList.sort((a, b) => a.respawnTime - b.respawnTime);
+
+        bossList.forEach((b, index) => {
+            const cleanName = b.name.replace(/<br>/g, ' ');
+            const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
+            let uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
+            
+            if (b.type.includes('Myrkheimr')) {
+                const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
+                // Adiciona numeração de prioridade (1º, 2º...)
+                desc += `**${index + 1}º** • **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
+            } else {
+                desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
+            }
+        });
+    }
 
     try {
         const response = await fetch(userWebhookUrl, { 
