@@ -283,26 +283,26 @@ function updateBossTimers() {
     const now = Date.now(); 
     updateNextBossHighlight();
 
-    // Lógica de Prioridade para Myrkheimr nos Cards
+    // Lógica de Prioridade UNIFICADA para os 8 bosses de Myrkheimr (C1 + C2)
+    let allMyrkBosses = [];
     ['Myrkheimr1', 'Myrkheimr2'].forEach(type => {
-        let myrkList = [];
         for (const f in BOSS_DATA[type].floors) {
-            BOSS_DATA[type].floors[f].bosses.forEach(b => { if(b.respawnTime > 0) myrkList.push(b); });
-        }
-        myrkList.sort((a, b) => a.respawnTime - b.respawnTime);
-        
-        // Limpar badges de todos primeiro
-        for (const f in BOSS_DATA[type].floors) {
-            BOSS_DATA[type].floors[f].bosses.forEach(b => {
+            BOSS_DATA[type].floors[f].bosses.forEach(b => { 
+                if(b.respawnTime > 0) allMyrkBosses.push(b); 
+                // Limpar badge visual antes de reordenar
                 const badge = document.getElementById('priority-' + b.id);
                 if(badge) badge.textContent = "";
             });
         }
-        // Aplicar badges na ordem correta
-        myrkList.forEach((b, idx) => {
-            const badge = document.getElementById('priority-' + b.id);
-            if(badge) badge.textContent = (idx + 1) + "º ";
-        });
+    });
+
+    // Ordena todos os 8 bosses juntos pelo horário da janela
+    allMyrkBosses.sort((a, b) => a.respawnTime - b.respawnTime);
+    
+    // Aplica a numeração de 1º a 8º baseada na ordem global
+    allMyrkBosses.forEach((b, idx) => {
+        const badge = document.getElementById('priority-' + b.id);
+        if(badge) badge.textContent = (idx + 1) + "º ";
     });
 
     for (const t in BOSS_DATA) {
@@ -427,6 +427,18 @@ async function sendReportToDiscord(filterType) {
     let desc = `**⏳ PRÓXIMOS RESPAWNS (${BOSS_DATA[filterType].name.toUpperCase()})**\n`;
     let bossList = [];
 
+    // Para o Discord, se for Myrk, buscamos a ordem global (dos 8 bosses) 
+    // mas mostramos apenas os do canal selecionado no botão, mantendo a numeração correta.
+    let globalMyrk = [];
+    if(filterType.includes('Myrk')) {
+        ['Myrkheimr1', 'Myrkheimr2'].forEach(t => {
+            for (const f in BOSS_DATA[t].floors) {
+                BOSS_DATA[t].floors[f].bosses.forEach(b => { if(b.respawnTime > 0) globalMyrk.push(b); });
+            }
+        });
+        globalMyrk.sort((a, b) => a.respawnTime - b.respawnTime);
+    }
+
     for (const f in BOSS_DATA[filterType].floors) {
         BOSS_DATA[filterType].floors[f].bosses.forEach(b => { 
             if (b.respawnTime > 0) bossList.push(b);
@@ -438,14 +450,16 @@ async function sendReportToDiscord(filterType) {
     } else {
         bossList.sort((a, b) => a.respawnTime - b.respawnTime);
 
-        bossList.forEach((b, index) => {
+        bossList.forEach((b) => {
             const cleanName = b.name.replace(/<br>/g, ' ');
             const timeStr = new Date(b.respawnTime).toLocaleTimeString('pt-BR');
             let uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
             
             if (b.type.includes('Myrkheimr')) {
+                // Encontra a posição global deste boss entre os 8 de Myrk
+                const globalIndex = globalMyrk.findIndex(gb => gb.id === b.id) + 1;
                 const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
-                desc += `**${index + 1}º** • **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
+                desc += `**${globalIndex}º** • **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
             } else {
                 desc += `• **${cleanName}** (${b.floor}) -> **${timeStr}**${uncertaintyStr}\n`;
             }
