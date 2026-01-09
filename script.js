@@ -177,11 +177,17 @@ function updateSingleCardDOM(id) {
 
     const mStr = b.respawnTime > 0 ? new Date(b.respawnTime - duration).toLocaleTimeString('pt-BR') : "--:--";
     const nStr = b.respawnTime > 0 ? new Date(b.respawnTime).toLocaleTimeString('pt-BR') : "--:--";
-    card.querySelector('.label-morto span').textContent = mStr;
-    card.querySelector('.label-nasce span').textContent = nStr;
+    
+    const labelMorto = card.querySelector('.label-morto span');
+    const labelNasce = card.querySelector('.label-nasce span');
+    if(labelMorto) labelMorto.textContent = mStr;
+    if(labelNasce) labelNasce.textContent = nStr;
     
     const cb = document.getElementById('not-sure-' + id);
     if(cb) cb.checked = b.notSure;
+
+    // Forçar atualização visual imediata dos timers/barras
+    updateBossTimers();
 }
 
 function updateNextBossHighlight() {
@@ -335,7 +341,7 @@ function updateBossTimers() {
                     } else if (now > windowEnd) {
                         boss.respawnTime = 0; save();
                     } else {
-                        const percent = (diff / MYRK_MIN_MS) * 100;
+                        const percent = Math.max(0, Math.min(100, (diff / MYRK_MIN_MS) * 100));
                         bar.style.width = percent + '%';
                         bar.style.backgroundColor = "#3498db";
                         card.classList.remove('alert', 'fire-alert');
@@ -359,7 +365,7 @@ function updateBossTimers() {
 }
 
 function updateCountdown(boss, diff, timerTxt, bar, card, duration) {
-    const percent = (diff / duration) * 100;
+    const percent = Math.max(0, Math.min(100, (diff / duration) * 100));
     bar.style.width = percent + '%';
     
     if (diff <= ONE_MINUTE_MS) { 
@@ -427,8 +433,6 @@ async function sendReportToDiscord(filterType) {
     let desc = `**⏳ PRÓXIMOS RESPAWNS (${BOSS_DATA[filterType].name.toUpperCase()})**\n`;
     let bossList = [];
 
-    // Para o Discord, se for Myrk, buscamos a ordem global (dos 8 bosses) 
-    // mas mostramos apenas os do canal selecionado no botão, mantendo a numeração correta.
     let globalMyrk = [];
     if(filterType.includes('Myrk')) {
         ['Myrkheimr1', 'Myrkheimr2'].forEach(t => {
@@ -456,7 +460,6 @@ async function sendReportToDiscord(filterType) {
             let uncertaintyStr = b.notSure ? " ⚠️ **(Incerteza)**" : "";
             
             if (b.type.includes('Myrkheimr')) {
-                // Encontra a posição global deste boss entre os 8 de Myrk
                 const globalIndex = globalMyrk.findIndex(gb => gb.id === b.id) + 1;
                 const windowEnd = new Date(b.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS)).toLocaleTimeString('pt-BR');
                 desc += `**${globalIndex}º** • **${cleanName}** -> Janela: **${timeStr} às ${windowEnd}**${uncertaintyStr}\n`;
