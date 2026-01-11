@@ -25,8 +25,10 @@ const BOSS_IMAGES = {
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-const MYRK_MIN_MS = 50 * 60 * 1000; // 50 min
-const MYRK_MAX_MS = 60 * 60 * 1000; // 60 min
+const MYRK_MIN_MS = 50 * 60 * 1000;
+const MYRK_PATROL_START_MS = 30 * 60 * 1000; 
+const PATROL_INTERVAL_MS = 10 * 60 * 1000; 
+const MYRK_MAX_MS = 60 * 60 * 1000;
 const FIVE_MINUTES_MS = 5 * 1000 * 60;
 const ONE_MINUTE_MS = 1000 * 60;
 
@@ -110,7 +112,7 @@ function initializeBossData() {
                     id: type.toLowerCase() + '_' + p + '_' + bossName.replace(/[\[\]\s\.<br>]+/g, '_').toLowerCase(),
                     name: bossName, respawnTime: 0, lastRespawnTime: null, alerted: false, 
                     floor: floorKey, type: type, image: BOSS_IMAGES[bossName] || "https://placehold.co/100x100/111/d4af37?text=Boss", notSure: false,
-                    history: []
+                    history: [], lastPatrolTime: 0
                 });
             });
         }
@@ -129,6 +131,7 @@ async function loadUserData() {
                 b.alerted = s.alerted; 
                 b.notSure = s.notSure || false; 
                 b.history = s.history || [];
+                b.lastPatrolTime = s.lastPatrolTime || 0;
             }
         });
         if (data.webhookUrl) {
@@ -150,7 +153,8 @@ async function save() {
                     time: b.respawnTime, 
                     alerted: b.alerted, 
                     notSure: b.notSure,
-                    history: b.history || []
+                    history: b.history || [],
+                    lastPatrolTime: b.lastPatrolTime || 0
                 });
             });
         }
@@ -223,6 +227,7 @@ window.killBoss = (id) => {
         if (!b.history) b.history = [];
         b.history.unshift(now);
         if (b.history.length > 3) b.history.pop();
+        b.lastPatrolTime = 0; 
     }
 
     b.respawnTime = now + duration; b.alerted = false;
@@ -243,10 +248,18 @@ window.setManualTime = (id) => {
         if (!b.history) b.history = [];
         b.history.unshift(d.getTime());
         if (b.history.length > 3) b.history.pop();
+        b.lastPatrolTime = 0;
     }
 
     b.respawnTime = d.getTime() + duration; b.alerted = false;
     inputEl.value = ""; save(); updateSingleCardDOM(id);
+};
+
+window.checkPatrol = (id) => {
+    const b = findBossById(id);
+    b.lastPatrolTime = Date.now();
+    save();
+    updateSingleCardDOM(id);
 };
 
 window.undoKill = (id) => {
@@ -265,7 +278,7 @@ window.undoKill = (id) => {
 
 window.resetBoss = (id) => {
     const b = findBossById(id); b.respawnTime = 0; b.alerted = false; b.notSure = false;
-    b.history = []; 
+    b.history = []; b.lastPatrolTime = 0;
     const cb = document.getElementById('not-sure-' + id); if(cb) cb.checked = false;
     save(); updateSingleCardDOM(id);
 };
@@ -278,6 +291,7 @@ window.resetAllTimers = async () => {
                 b.respawnTime = 0; 
                 b.notSure = false; 
                 b.history = []; 
+                b.lastPatrolTime = 0;
             }); 
         } 
     }
@@ -300,7 +314,6 @@ function updateBossTimers() {
     });
 
     allMyrkBosses.sort((a, b) => a.respawnTime - b.respawnTime);
-    
     allMyrkBosses.forEach((b, idx) => {
         const badge = document.getElementById('priority-' + b.id);
         if(badge) badge.textContent = (idx + 1) + "º ";
@@ -310,11 +323,15 @@ function updateBossTimers() {
         for (const f in BOSS_DATA[t].floors) {
             BOSS_DATA[t].floors[f].bosses.forEach(boss => {
                 const timerTxt = document.getElementById('timer-' + boss.id), bar = document.getElementById('bar-' + boss.id), card = document.getElementById('card-' + boss.id);
+                const patrolBox = card.querySelector('.patrol-timer-box'), patrolBtn = card.querySelector('.patrol-btn');
                 if (!timerTxt || !bar || !card) return;
 
                 if (boss.respawnTime === 0) {
                     timerTxt.textContent = "DISPONÍVEL!"; timerTxt.style.color = "#2ecc71";
-                    bar.style.width = "100%"; bar.style.backgroundColor = "#2ecc71"; card.classList.remove('alert', 'fire-alert');
+                    bar.style.width = "100%"; bar.style.backgroundColor = "#2ecc71"; 
+                    card.classList.remove('alert', 'fire-alert', 'patrol-alert');
+                    if(patrolBox) patrolBox.style.display = 'none';
+                    if(patrolBtn) patrolBtn.style.display = 'none';
                     return;
                 }
 
@@ -322,7 +339,35 @@ function updateBossTimers() {
                 const diff = boss.respawnTime - now;
 
                 if (isMyrk) {
+                    const deathTime = boss.respawnTime - MYRK_MIN_MS;
+                    const timeSinceDeath = now - deathTime;
                     const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
+
+                    // ITEM 1: Estado de Janela (A partir dos 30 min)
+                    if (timeSinceDeath >= MYRK_PATROL_START_MS && now < windowEnd) {
+                        card.classList.add('patrol-alert');
+                        if(patrolBox) patrolBox.style.display = 'block';
+                        if(patrolBtn) patrolBtn.style.display = 'block';
+
+                        // ITEM 2: Timer de Ronda (10 min)
+                        const lastPatrol = boss.lastPatrolTime || (deathTime + MYRK_PATROL_START_MS);
+                        const nextPatrol = lastPatrol + PATROL_INTERVAL_MS;
+                        const patrolDiff = nextPatrol - now;
+
+                        if (patrolDiff > 0) {
+                            const pM = Math.floor(patrolDiff / 60000).toString().padStart(2,'0'), pS = Math.floor((patrolDiff % 60000) / 1000).toString().padStart(2,'0');
+                            patrolBox.textContent = `PRÓXIMA RONDA EM: ${pM}:${pS}`;
+                            patrolBox.style.background = "#f1c40f";
+                        } else {
+                            patrolBox.textContent = "HORA DA RONDA!";
+                            patrolBox.style.background = "#e67e22";
+                        }
+                    } else {
+                        card.classList.remove('patrol-alert');
+                        if(patrolBox) patrolBox.style.display = 'none';
+                        if(patrolBtn) patrolBtn.style.display = 'none';
+                    }
+
                     if (now >= boss.respawnTime && now <= windowEnd) {
                         timerTxt.textContent = "JANELA!"; timerTxt.style.color = "#e74c3c";
                         bar.style.width = "100%"; bar.style.backgroundColor = "#e74c3c";
@@ -338,9 +383,8 @@ function updateBossTimers() {
                         timerTxt.textContent = `${h}:${m}:${s}`;
                     }
                 } else {
-                    if (diff <= 0) {
-                        boss.respawnTime = 0;
-                    } else {
+                    if (diff <= 0) { boss.respawnTime = 0; } 
+                    else {
                         const duration = boss.type === 'Universal' ? TWO_HOURS_MS : EIGHT_HOURS_MS;
                         updateCountdown(boss, diff, timerTxt, bar, card, duration);
                     }
@@ -352,18 +396,12 @@ function updateBossTimers() {
 
 function updateCountdown(boss, diff, timerTxt, bar, card, duration) {
     const percent = Math.max(0, Math.min(100, (diff / duration) * 100));
-    bar.style.width = percent + '%';
-    bar.style.backgroundColor = "#3498db";
-    
-    if (diff <= ONE_MINUTE_MS) { 
-        card.classList.add('fire-alert'); timerTxt.style.color = "#ff8c00"; bar.style.backgroundColor = "#ff8c00";
-    } else if (diff <= FIVE_MINUTES_MS) {
+    bar.style.width = percent + '%'; bar.style.backgroundColor = "#3498db";
+    if (diff <= ONE_MINUTE_MS) { card.classList.add('fire-alert'); timerTxt.style.color = "#ff8c00"; bar.style.backgroundColor = "#ff8c00"; } 
+    else if (diff <= FIVE_MINUTES_MS) {
         card.classList.add('alert'); timerTxt.style.color = "#ff4d4d"; bar.style.backgroundColor = "#ff4d4d";
         if (!boss.alerted) { document.getElementById('alert-sound').play().catch(() => {}); boss.alerted = true; save(); }
-    } else { 
-        card.classList.remove('alert', 'fire-alert'); timerTxt.style.color = "#f1c40f"; boss.alerted = false; 
-    }
-    
+    } else { card.classList.remove('alert', 'fire-alert'); timerTxt.style.color = "#f1c40f"; boss.alerted = false; }
     const h = Math.floor(diff / 3600000).toString().padStart(2,'0'), m = Math.floor((diff % 3600000) / 60000).toString().padStart(2,'0'), s = Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
     timerTxt.textContent = `${h}:${m}:${s}`;
 }
@@ -388,9 +426,11 @@ function render() {
                         <h4><span class="priority-badge" id="priority-${boss.id}"></span>${boss.name}</h4>
                     </div>
                     <div class="timer" id="timer-${boss.id}">DISPONÍVEL!</div>
+                    <div class="patrol-timer-box">PRÓXIMA RONDA EM: 10:00</div>
                     <div class="boss-progress-container"><div class="boss-progress-bar" id="bar-${boss.id}"></div></div>
                     <div class="static-times"><p class="label-morto">Morto: <span>${mStr}</span></p><p class="label-nasce">Nasce: <span>${nStr}</span></p></div>
                     <label class="uncertainty-box"><input type="checkbox" id="not-sure-${boss.id}" ${boss.notSure ? 'checked' : ''} onchange="toggleNotSure('${boss.id}')"> Incerteza</label>
+                    <button class="patrol-btn" onclick="checkPatrol('${boss.id}')">📢 Check Ronda OK</button>
                     <button class="kill-btn" onclick="killBoss('${boss.id}')">Derrotado AGORA</button>
                     <div class="manual-box"><input type="time" id="manual-input-${boss.id}" step="1" onkeydown="if(event.key==='Enter') setManualTime('${boss.id}')"><button class="conf-btn" onclick="setManualTime('${boss.id}')">OK</button></div>
                     <div class="action-footer"><button class="undo-btn" onclick="undoKill('${boss.id}')">↩ Desfazer</button><button class="reset-btn" onclick="resetBoss('${boss.id}')">Reset</button></div>
