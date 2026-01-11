@@ -123,23 +123,13 @@ header.main-banner {
 .action-footer { display: flex; gap: 5px; }
 .undo-btn, .reset-btn { flex: 1; background: #333; color: #ccc; border: none; padding: 6px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; }
 
-/* MODIFICAÇÕES MODO COMPACTO */
 .type-section.compact-mode .boss-card { 
-    width: 200px; min-width: 200px; min-height: 140px; 
-    padding: 10px; text-align: center; justify-content: center;
+    width: 200px; min-width: 200px; min-height: 180px; 
+    padding: 10px; text-align: center; 
 }
-.type-section.compact-mode .boss-header { justify-content: center; height: auto; margin-bottom: 5px; }
-.type-section.compact-mode .boss-header h4 { font-size: 0.85rem; }
-.type-section.compact-mode .manual-box, 
-.type-section.compact-mode .action-footer, 
-.type-section.compact-mode .uncertainty-box, 
-.type-section.compact-mode .patrol-btn, 
-.type-section.compact-mode .patrol-timer-box,
-.type-section.compact-mode .boss-progress-container,
-.type-section.compact-mode .static-times { display: none; }
-
-.type-section.compact-mode .kill-btn { padding: 5px; font-size: 0.75rem; margin-top: 5px; }
-.type-section.compact-mode .timer { font-size: 1.3rem; margin: 5px 0; }
+.type-section.compact-mode .boss-header { justify-content: center; height: 50px; }
+.type-section.compact-mode .manual-box, .type-section.compact-mode .action-footer, .type-section.compact-mode .uncertainty-box, .type-section.compact-mode .patrol-btn, .type-section.compact-mode .patrol-timer-box { display: none; }
+.type-section.compact-mode .timer { font-size: 1.2rem; }
 
 .global-actions { margin-top: 40px; }
 .export-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
