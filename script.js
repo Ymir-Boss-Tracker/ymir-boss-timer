@@ -25,7 +25,7 @@ const BOSS_IMAGES = {
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-const MYRK_MIN_MS = 50 * 60 * 1000;
+const MYRK_MIN_MS = 30 * 60 * 1000; // Alterado de 50 para 30 minutos (Início da Janela)
 const MYRK_PATROL_START_MS = 30 * 60 * 1000; 
 const PATROL_INTERVAL_MS = 10 * 60 * 1000; 
 const MYRK_MAX_MS = 60 * 60 * 1000;
@@ -341,6 +341,7 @@ function updateBossTimers() {
                 if (isMyrk) {
                     const deathTime = boss.respawnTime - MYRK_MIN_MS;
                     const timeSinceDeath = now - deathTime;
+                    // Fim da janela é sempre +30 min em relação ao início (Total 60 min após a morte)
                     const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
 
                     if (timeSinceDeath >= MYRK_PATROL_START_MS && now < windowEnd) {
