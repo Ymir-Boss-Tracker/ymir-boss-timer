@@ -343,13 +343,11 @@ function updateBossTimers() {
                     const timeSinceDeath = now - deathTime;
                     const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
 
-                    // ITEM 1: Estado de Janela (A partir dos 30 min)
                     if (timeSinceDeath >= MYRK_PATROL_START_MS && now < windowEnd) {
                         card.classList.add('patrol-alert');
                         if(patrolBox) patrolBox.style.display = 'block';
                         if(patrolBtn) patrolBtn.style.display = 'block';
 
-                        // ITEM 2: Timer de Ronda (10 min)
                         const lastPatrol = boss.lastPatrolTime || (deathTime + MYRK_PATROL_START_MS);
                         const nextPatrol = lastPatrol + PATROL_INTERVAL_MS;
                         const patrolDiff = nextPatrol - now;
