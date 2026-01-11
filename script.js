@@ -25,7 +25,7 @@ const BOSS_IMAGES = {
 
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-const MYRK_MIN_MS = 30 * 60 * 1000; 
+const MYRK_MIN_MS = 30 * 60 * 1000; // Alterado de 50 para 30 minutos (Início da Janela)
 const MYRK_PATROL_START_MS = 30 * 60 * 1000; 
 const PATROL_INTERVAL_MS = 10 * 60 * 1000; 
 const MYRK_MAX_MS = 60 * 60 * 1000;
@@ -341,26 +341,25 @@ function updateBossTimers() {
                 if (isMyrk) {
                     const deathTime = boss.respawnTime - MYRK_MIN_MS;
                     const timeSinceDeath = now - deathTime;
+                    // Fim da janela é sempre +30 min em relação ao início (Total 60 min após a morte)
                     const windowEnd = boss.respawnTime + (MYRK_MAX_MS - MYRK_MIN_MS);
 
                     if (timeSinceDeath >= MYRK_PATROL_START_MS && now < windowEnd) {
                         card.classList.add('patrol-alert');
-                        if(patrolBox && !isCompactView) patrolBox.style.display = 'block';
-                        if(patrolBtn && !isCompactView) patrolBtn.style.display = 'block';
+                        if(patrolBox) patrolBox.style.display = 'block';
+                        if(patrolBtn) patrolBtn.style.display = 'block';
 
                         const lastPatrol = boss.lastPatrolTime || (deathTime + MYRK_PATROL_START_MS);
                         const nextPatrol = lastPatrol + PATROL_INTERVAL_MS;
                         const patrolDiff = nextPatrol - now;
 
-                        if (!isCompactView && patrolBox) {
-                            if (patrolDiff > 0) {
-                                const pM = Math.floor(patrolDiff / 60000).toString().padStart(2,'0'), pS = Math.floor((patrolDiff % 60000) / 1000).toString().padStart(2,'0');
-                                patrolBox.textContent = `PRÓXIMA RONDA EM: ${pM}:${pS}`;
-                                patrolBox.style.background = "#f1c40f";
-                            } else {
-                                patrolBox.textContent = "HORA DA RONDA!";
-                                patrolBox.style.background = "#e67e22";
-                            }
+                        if (patrolDiff > 0) {
+                            const pM = Math.floor(patrolDiff / 60000).toString().padStart(2,'0'), pS = Math.floor((patrolDiff % 60000) / 1000).toString().padStart(2,'0');
+                            patrolBox.textContent = `PRÓXIMA RONDA EM: ${pM}:${pS}`;
+                            patrolBox.style.background = "#f1c40f";
+                        } else {
+                            patrolBox.textContent = "HORA DA RONDA!";
+                            patrolBox.style.background = "#e67e22";
                         }
                     } else {
                         card.classList.remove('patrol-alert');
